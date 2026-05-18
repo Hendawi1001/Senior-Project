@@ -1,0 +1,848 @@
+{
+  "intents": [
+    {
+      "tag": "greeting",
+      "patterns_en": [
+        "hi",
+        "hello",
+        "hey",
+        "start",
+        "good morning",
+        "good evening",
+        "how are you",
+        "howdy",
+        "what's up",
+        "greetings",
+        "hi there",
+        "hello there",
+        "morning",
+        "evening",
+        "afternoon",
+        "hey bot"
+      ],
+      "patterns_ar": [
+        "مرحبا",
+        "أهلا",
+        "هلا",
+        "صباح الخير",
+        "مساء الخير",
+        "كيف حالك",
+        "السلام عليكم",
+        "سلام",
+        "تفضل",
+        "مرحبتين",
+        "أهلين",
+        "يا هلا",
+        "شو الأخبار",
+        "كيف الصحة",
+        "تحياتي"
+      ],
+      "responses_en": [
+        "Hello! I am PulseGuard AI. How can I assist you with your health today?",
+        "Hi there! What can I analyze for you today?",
+        "Greetings! Ready to check your vitals?",
+        "Hello! How are you feeling right now?"
+      ],
+      "responses_ar": [
+        "مرحباً! أنا المساعد الذكي PulseGuard. كيف يمكنني مساعدتك اليوم بخصوص صحتك؟",
+        "أهلاً بك! ماذا تريد أن أحلل لك اليوم؟",
+        "السلام عليكم! هل تود التحقق من مؤشراتك الحيوية؟",
+        "أهلاً! كيف تشعر الآن؟"
+      ]
+    },
+    {
+      "tag": "farewell",
+      "patterns_en": [
+        "bye",
+        "goodbye",
+        "see you later",
+        "catch you later",
+        "i am leaving",
+        "exit",
+        "quit",
+        "stop",
+        "talk to you later",
+        "bye bye",
+        "farewell"
+      ],
+      "patterns_ar": [
+        "وداعا",
+        "إلى اللقاء",
+        "مع السلامة",
+        "أراك لاحقا",
+        "خروج",
+        "توقف",
+        "باي",
+        "في أمان الله",
+        "تصبح على خير",
+        "سلام"
+      ],
+      "responses_en": [
+        "Goodbye! Stay healthy.",
+        "See you later! Remember to check your vitals regularly.",
+        "Take care! I am here if you need health advice.",
+        "Farewell! Have a great, healthy day."
+      ],
+      "responses_ar": [
+        "وداعاً! ابق بصحة جيدة.",
+        "إلى اللقاء! تذكر فحص مؤشراتك الحيوية بانتظام.",
+        "اعتن بنفسك! أنا هنا إذا احتجت لنصيحة صحية.",
+        "مع السلامة! أتمنى لك يوماً صحياً رائعاً."
+      ]
+    },
+    {
+      "tag": "bot_identity",
+      "patterns_en": [
+        "who are you",
+        "what are you",
+        "are you human",
+        "are you a bot",
+        "what is your name",
+        "tell me about yourself",
+        "who made you",
+        "identity",
+        "bot"
+      ],
+      "patterns_ar": [
+        "من أنت",
+        "ما أنت",
+        "هل أنت إنسان",
+        "هل أنت روبوت",
+        "ما اسمك",
+        "حدثني عن نفسك",
+        "من صنعك",
+        "هوية",
+        "روبوت"
+      ],
+      "responses_en": [
+        "I am PulseGuard AI, an intelligent offline virtual assistant. I specialize in analyzing cardiovascular health vitals.",
+        "I am your personal health bot. I use Machine Learning to predict your health risks based on live sensor data.",
+        "I'm a health-focused AI designed to help you understand your body better."
+      ],
+      "responses_ar": [
+        "أنا PulseGuard AI، مساعدك الذكي الذي يعمل بدون إنترنت. أنا متخصص في تحليل المؤشرات الحيوية لصحة القلب والأوعية الدموية.",
+        "أنا روبوتك الصحي الشخصي. أستخدم الذكاء الاصطناعي للتنبؤ بالمخاطر الصحية بناءً على بيانات أجهزة الاستشعار.",
+        "أنا ذكاء اصطناعي مُصمم لمساعدتك على فهم صحتك بشكل أفضل."
+      ]
+    },
+    {
+      "tag": "jokes",
+      "patterns_en": [
+        "tell me a joke",
+        "joke",
+        "make me laugh",
+        "funny",
+        "say something funny",
+        "i am bored"
+      ],
+      "patterns_ar": [
+        "قل لي نكتة",
+        "قولي نكته",
+        "نكتة",
+        "أضحكني",
+        "مضحك",
+        "قل شيئا مضحكا",
+        "أنا أشعر بالملل"
+      ],
+      "responses_en": [
+        "Why did the smartphone go to the doctor? Because it lost its contacts!",
+        "I'm reading a book on anti-gravity. It's impossible to put down!",
+        "I told my doctor I broke my arm in two places. He told me to stop going to those places!"
+      ],
+      "responses_ar": [
+        "راح راجل للدكتور فسأله أنت عندك إيه؟ قاله عندي عيلين وخروف,هع هع اسف ",
+        "مرة واحد كتب على الحيطة معرفش يطلقها,اتمني ضغطك ميكنش اترفع هو دلوقتي {sys}/{dia}",
+        "مره واحد اكل رغيف كامل كامل زعل😂 ومتقلقش مجالكش هبوط ضغطك {sys}/{dia}",
+        "واحد عنده مزرعه فراخ تعب جاله ديك تنفس😂 ,لسه عايش ضغطك:{sys}/{dia}"
+      ]
+    },
+    {
+      "tag": "ask_heart_rate",
+      "patterns_en": [
+        "what is my heart rate",
+        "heart rate",
+        "bpm",
+        "how is my pulse",
+        "check my heart",
+        "pulse",
+        "heart",
+        "is my pulse high",
+        "is my pulse low",
+        "my heart beat",
+        "heartbeat"
+      ],
+      "patterns_ar": [
+        "ما هو معدل نبضات قلبي",
+        "سرعة ضربات القلب",
+        "نبض",
+        "قلب",
+        "دقات القلب",
+        "كم نبضي",
+        "هل نبضي سريع",
+        "هل نبضي بطيء",
+        "ضربات قلبي"
+      ],
+      "responses_en": [
+        "Your live heart rate is {bpm} BPM. A normal resting heart rate for adults ranges from 60 to 100 beats per minute.",
+        "Currently, your heart is beating at {bpm} BPM. If you are resting, this is how hard your heart is working.",
+        "I'm detecting a pulse of {bpm} BPM."
+      ],
+      "responses_ar": [
+        "معدل ضربات قلبك الحالي هو {bpm} نبضة في الدقيقة. المعدل الطبيعي للبالغين يتراوح بين 60 إلى 100 نبضة.",
+        "حالياً، ينبض قلبك بمعدل {bpm} نبضة في الدقيقة.",
+        "أنا أرصد نبضاً بمعدل {bpm} نبضة."
+      ]
+    },
+    {
+      "tag": "ask_spo2",
+      "patterns_en": [
+        "what is my oxygen",
+        "spo2",
+        "oxygen level",
+        "blood oxygen",
+        "is my oxygen normal",
+        "oxygen",
+        "saturation",
+        "how much oxygen",
+        "breathing"
+      ],
+      "patterns_ar": [
+        "ما هو مستوى الأكسجين",
+        "أكسجين",
+        "مستوى الأكسجين",
+        "اكسجين الدم",
+        "نسبة الأكسجين",
+        "spo2",
+        "كم أكسجيني",
+        "تنفس",
+        "تشبع الأكسجين"
+      ],
+      "responses_en": [
+        "Your current SpO2 level is {spo2}%. Normal oxygen saturation values are typically between 95% and 100%.",
+        "I read your blood oxygen saturation at {spo2}%. This measures how much oxygen your blood is carrying.",
+        "Your oxygen is at {spo2}%."
+      ],
+      "responses_ar": [
+        "مستوى الأكسجين الحالي في دمك هو {spo2}%. نسبة الأكسجين الطبيعية تتراوح عادة بين 95% و 100%.",
+        "قرأت أن نسبة تشبع الأكسجين لديك هي {spo2}%. هذا يقيس كمية الأكسجين التي يحملها دمك.",
+        "نسبة الأكسجين لديك {spo2}%."
+      ]
+    },
+    {
+      "tag": "ask_blood_pressure",
+      "patterns_en": [
+        "what is my blood pressure",
+        "bp",
+        "blood pressure",
+        "systolic",
+        "diastolic",
+        "pressure",
+        "hypertension",
+        "hypotension",
+        "is my pressure high"
+      ],
+      "patterns_ar": [
+        "كم ضغط دمي",
+        "ضغط الدم",
+        "الضغط",
+        "ضغط",
+        "الضغط الانقباضي",
+        "الضغط الانبساطي",
+        "ارتفاع الضغط",
+        "هبوط الضغط",
+        "هل ضغطي مرتفع"
+      ],
+      "responses_en": [
+        "Your blood pressure is currently {sys}/{dia} mmHg. Ideal blood pressure is usually considered to be between 90/60mmHg and 120/80mmHg.",
+        "I am seeing a BP of {sys}/{dia} mmHg. The top number is your systolic pressure, and the bottom is your diastolic.",
+        "Your BP is {sys}/{dia} mmHg."
+      ],
+      "responses_ar": [
+        "ضغط دمك الحالي هو {sys}/{dia} mmHg. ضغط الدم المثالي يعتبر عادة بين 90/60 و 120/80.",
+        "أرى أن ضغط دمك {sys}/{dia} mmHg. الرقم الأول هو الضغط الانقباضي والثاني هو الانبساطي.",
+        "ضغطك هو {sys}/{dia} mmHg."
+      ]
+    },
+    {
+      "tag": "ask_temp",
+      "patterns_en": [
+        "what is my temperature",
+        "body temp",
+        "fever",
+        "temperature",
+        "am i hot",
+        "temp",
+        "do i have a fever",
+        "is my temp high",
+        "cold sweat"
+      ],
+      "patterns_ar": [
+        "كم درجة حرارتي",
+        "درجة الحرارة",
+        "حرارة",
+        "حمى",
+        "هل أعاني من حمى",
+        "حرارتي",
+        "هل أنا ساخن",
+        "هل حرارتي مرتفعة",
+        "عرق بارد"
+      ],
+      "responses_en": [
+        "Your body temperature is {temp}°C. Normal body temperature is usually around 37°C (98.6°F).",
+        "Your skin temperature indicates {temp}°C.",
+        "I'm measuring your temperature at {temp}°C. Keep an eye on it if it feels too high."
+      ],
+      "responses_ar": [
+        "درجة حرارة جسمك هي {temp}°C. درجة الحرارة الطبيعية للجسم تكون عادة حوالي 37 مئوية.",
+        "درجة حرارة بشرتك تشير إلى {temp} درجة مئوية.",
+        "أقيس درجة حرارتك بـ {temp}°C. راقبها إذا شعرت بأنها مرتفعة جدًا."
+      ]
+    },
+    {
+      "tag": "ask_risk",
+      "patterns_en": [
+        "am i at risk",
+        "risk analysis",
+        "health risk",
+        "heart disease risk",
+        "is my health okay",
+        "status",
+        "how am i doing",
+        "risk",
+        "disease",
+        "condition",
+        "predict my risk",
+        "machine learning risk"
+      ],
+      "patterns_ar": [
+        "هل أنا في خطر",
+        "تحليل المخاطر",
+        "خطر صحي",
+        "خطر أمراض القلب",
+        "كيف حالتي الصحية",
+        "حالة",
+        "مخاطر",
+        "مرض",
+        "تنبأ بالخطر",
+        "احتمال المرض",
+        "هل أنا بخير"
+      ],
+      "responses_en": [
+        "Based on your live vitals, your current risk assessment is: {risk}.",
+        "My ML analysis shows you are currently at: {risk}. This takes into account your live BPM of {bpm} and SpO2 of {spo2}%.",
+        "Factoring in your vitals, the model predicts your status as: {risk}."
+      ],
+      "responses_ar": [
+        "بناءً على مؤشراتك الحيوية، مستوى الخطر الصحي لديك هو: {risk}.",
+        "أظهر تحليل الذكاء الاصطناعي أن حالتك الآن: {risk}. هذا يأخذ في الاعتبار نبضك ({bpm}) ونسبة الأكسجين ({spo2}%).",
+        "بالنظر إلى مؤشراتك، يتنبأ النموذج بحالتك على أنها: {risk}."
+      ]
+    },
+    {
+      "tag": "app_usage",
+      "patterns_en": [
+        "how do i use this app",
+        "app info",
+        "what does this app do",
+        "help",
+        "features",
+        "how to use",
+        "explain app",
+        "app",
+        "guide",
+        "tutorial",
+        "instructions",
+        "sensors",
+        "connect hardware"
+      ],
+      "patterns_ar": [
+        "كيف أستخدم هذا التطبيق",
+        "معلومات التطبيق",
+        "ماذا يفعل هذا التطبيق",
+        "مساعدة",
+        "المميزات",
+        "تطبيق",
+        "دليل",
+        "تعليمات",
+        "مستشعرات",
+        "كيفية الاستخدام",
+        "ربط الأجهزة"
+      ],
+      "responses_en": [
+        "PulseGuard tracks your live vitals like BPM and SpO2 using connected sensors, and uses an advanced AI backend to predict health risks in real-time.",
+        "Ensure your sensor hardware is connected. Once linked, the dashboard will display your live vitals. You can chat with me here anytime for an analysis!",
+        "This app monitors your heart health. Check the dashboard for real-time readings."
+      ],
+      "responses_ar": [
+        "يقوم تطبيق PulseGuard بتتبع مؤشراتك الحيوية مثل نبض القلب والأكسجين باستخدام أجهزة استشعار متصلة، ويستخدم الذكاء الاصطناعي للتنبؤ بالمخاطر الصحية.",
+        "تأكد من توصيل مستشعراتك. بمجرد الربط، ستعرض لوحة القيادة مؤشراتك. يمكنك التحدث معي هنا في أي وقت!",
+        "هذا التطبيق يراقب صحة قلبك. تحقق من لوحة القيادة لرؤية قراءاتك الحية."
+      ]
+    },
+    {
+      "tag": "sleep_tips",
+      "patterns_en": [
+        "give me 5 sleep tips",
+        "how to sleep better",
+        "sleep tips",
+        "insomnia",
+        "can not sleep",
+        "sleep well",
+        "sleep",
+        "tired",
+        "i want to sleep",
+        "sleepy",
+        "hard to sleep"
+      ],
+      "patterns_ar": [
+        "أعطني نصائح للنوم",
+        "كيف أنام بشكل أفضل",
+        "نصائح النوم",
+        "أرق",
+        "لا أستطيع النوم",
+        "نوم",
+        "تعبان",
+        "نعاس",
+        "أريد أن أنام",
+        "صعوبة في النوم"
+      ],
+      "responses_en": [
+        "Here are tips for better sleep:\n1. Stick to a sleep schedule.\n2. Avoid caffeine in the afternoon.\n3. Create a dark, restful environment.\n4. Avoid screens an hour before bed.\n5. Keep your room cool.",
+        "Try winding down with a book or meditation before bed. Keeping your bedroom dark and cool helps immensely.",
+        "Avoid heavy meals and bright lights before bedtime. Try to get 7-9 hours of rest."
+      ],
+      "responses_ar": [
+        "إليك نصائح لنوم أفضل:\n1. الالتزام بموعد محدد للنوم.\n2. تجنب الكافيين في المساء.\n3. توفير غرفة مظلمة ومريحة.\n4. تجنب الشاشات قبل النوم بساعة.\n5. حافظ على برودة الغرفة.",
+        "جرب الاسترخاء بقراءة كتاب أو التأمل قبل النوم. إبقاء غرفتك مظلمة وباردة يساعد بشكل كبير.",
+        "تجنب الوجبات الثقيلة والأضواء الساطعة قبل النوم. حاول الحصول على 7 إلى 9 ساعات من الراحة."
+      ]
+    },
+    {
+      "tag": "data_insight",
+      "patterns_en": [
+        "explain my health data",
+        "data insight",
+        "latest health data",
+        "what do my numbers mean",
+        "insight",
+        "data",
+        "explain",
+        "analytics",
+        "meaning",
+        "analysis"
+      ],
+      "patterns_ar": [
+        "اشرح بياناتي الصحية",
+        "نظرة على البيانات",
+        "ماذا تعني أرقامي",
+        "بصيرة",
+        "بيانات",
+        "شرح",
+        "إحصائيات",
+        "تحليل",
+        "معنى"
+      ],
+      "responses_en": [
+        "Your vitals provide a snapshot of your cardiovascular system. A BPM around {bpm} and SpO2 at {spo2}% indicate how efficiently your heart works and oxygen is delivered.",
+        "A healthy heart pushes blood effectively, keeping SpO2 high (like your {spo2}%) without needing to beat too fast. Your {bpm} BPM reflects this.",
+        "These numbers reflect your cardiovascular efficiency. Changes in these can indicate stress, exercise, or underlying issues."
+      ],
+      "responses_ar": [
+        "توفر مؤشراتك الحيوية نظرة عامة على صحة قلبك. معدل ضربات القلب {bpm} ونسبة الأكسجين {spo2}% تدل على كفاءة عمل قلبك.",
+        "القلب السليم يضخ الدم بكفاءة، مما يبقي الأكسجين مرتفعاً (مثل {spo2}%) دون الحاجة للنبض بسرعة كبيرة. نبضك الذي يبلغ {bpm} يعكس ذلك.",
+        "هذه الأرقام تعكس كفاءة الدورة الدموية لديك. أي تغيير فيها قد يشير إلى إجهاد، تمرين، أو مشاكل خفية."
+      ]
+    },
+    {
+      "tag": "schedule",
+      "patterns_en": [
+        "schedule for me",
+        "health schedule",
+        "7 day schedule",
+        "routine",
+        "plan",
+        "schedule",
+        "daily routine",
+        "healthy day",
+        "what should i do today"
+      ],
+      "patterns_ar": [
+        "جدول زمني لي",
+        "جدول صحي",
+        "روتين سريع",
+        "خطة",
+        "جدول",
+        "روتين يومي",
+        "يوم صحي",
+        "ماذا أفعل اليوم"
+      ],
+      "responses_en": [
+        "A general health schedule: Wake up at 7AM, drink a glass of water, do 30 min of light exercise. Eat a balanced breakfast. Take walking breaks during work. Dinner by 7PM. Wind down by 10PM.",
+        "Morning: Stretch and hydrate. Afternoon: Walk and eat a protein-rich lunch. Evening: Disconnect from screens and relax.",
+        "Plan your day around healthy habits: hydration, moderate exercise, balanced meals, and proper rest."
+      ],
+      "responses_ar": [
+        "جدول صحي مقترح: استيقظ في 7 صباحاً، اشرب ماء، مارس رياضة خفيفة لـ30 دقيقة. تناول فطور متوازن. خذ فترات راحة للمشي أثناء العمل. العشاء في 7 مساءً. استرح في 10 مساءً.",
+        "الصباح: تمدد واشرب الماء. الظهر: امش وتناول غداء غني بالبروتين. المساء: ابتعد عن الشاشات واسترخ.",
+        "خطط يومك حول العادات الصحية: شرب الماء، الرياضة المعتدلة، الوجبات المتوازنة، والراحة الكافية."
+      ]
+    },
+    {
+      "tag": "diet_advice",
+      "patterns_en": [
+        "what should i eat",
+        "diet advice",
+        "healthy food",
+        "nutrition",
+        "food",
+        "diet",
+        "lose weight",
+        "meals",
+        "keto",
+        "calories",
+        "heart healthy",
+        "cholesterol"
+      ],
+      "patterns_ar": [
+        "ماذا يجب أن آكل",
+        "نصيحة غذائية",
+        "طعام صحي",
+        "تغذية",
+        "أكل",
+        "حمية",
+        "وزن",
+        "وجبات",
+        "سعرات",
+        "طعام القلب",
+        "كوليسترول",
+        "رجيم"
+      ],
+      "responses_en": [
+        "For a healthy heart, focus on fruits, vegetables, whole grains, and lean proteins like fish and chicken. Limit saturated fats, sodium, and added sugars.",
+        "Drink plenty of water! Incorporate healthy fats like avocados, nuts, and olive oil into your diet.",
+        "To manage your weight and heart health, focus on caloric balance and nutrient-dense foods. Avoid processed foods when possible."
+      ],
+      "responses_ar": [
+        "لقلب صحي، ركز على الفواكه، الخضروات، الحبوب الكاملة، والبروتينات الخالية من الدهون كالأسماك والدجاج. قلل من الدهون المشبعة، الصوديوم، والسكريات.",
+        "اشرب الكثير من الماء! أضف الدهون الصحية مثل الأفوكادو والمكسرات وزيت الزيتون إلى نظامك الغذائي.",
+        "لإدارة وزنك وصحة قلبك، ركز على توازن السعرات وتناول أطعمة غنية بالعناصر الغذائية. تجنب الأطعمة المصنعة."
+      ]
+    },
+    {
+      "tag": "exercise_tips",
+      "patterns_en": [
+        "workout plan",
+        "exercise tips",
+        "fitness",
+        "how to workout",
+        "gym",
+        "training",
+        "cardio",
+        "exercise",
+        "run",
+        "lift weights",
+        "muscle",
+        "stretch"
+      ],
+      "patterns_ar": [
+        "خطة تمرين",
+        "نصائح رياضية",
+        "لياقة",
+        "كيف أتمرن",
+        "نادي",
+        "تدريب",
+        "رياضة",
+        "تمارين",
+        "ركض",
+        "رفع الأثقال",
+        "عضلات",
+        "إطالة"
+      ],
+      "responses_en": [
+        "Aim for at least 150 minutes of moderate aerobic activity or 75 minutes of vigorous activity a week. Try brisk walking, swimming, or cycling!",
+        "Mix cardio (like jogging) with strength training 2-3 times a week. Don't forget to stretch to prevent injuries.",
+        "Consistency is key. Even a 20-minute daily walk can significantly improve cardiovascular health."
+      ],
+      "responses_ar": [
+        "استهدف ممارسة 150 دقيقة من النشاط المعتدل، أو 75 دقيقة من النشاط المكثف أسبوعياً. جرب المشي السريع، السباحة، أو ركوب الدراجة!",
+        "اخلط بين تمارين القلب (كالركض) وتمارين القوة مرتين أو ثلاث أسبوعياً. لا تنس تمارين الإطالة لمنع الإصابات.",
+        "الاستمرارية هي الأساس. حتى مشي 20 دقيقة يومياً يمكنه تحسين صحة القلب بشكل كبير."
+      ]
+    },
+    {
+      "tag": "first_aid",
+      "patterns_en": [
+        "emergency",
+        "first aid",
+        "heart attack symptoms",
+        "cpr",
+        "help me",
+        "pain in chest",
+        "hurt",
+        "stroke",
+        "FAST",
+        "bleeding",
+        "unconscious",
+        "ambulance"
+      ],
+      "patterns_ar": [
+        "طوارئ",
+        "إسعاف أولي",
+        "أعراض نوبة قلبية",
+        "أنقذني",
+        "وجع في الصدر",
+        "ألم",
+        "النجدة",
+        "جلطة",
+        "نزيف",
+        "فاقد الوعي",
+        "إسعاف",
+        "إغماء"
+      ],
+      "responses_en": [
+        "⚠️ IF THIS IS A MEDICAL EMERGENCY, CALL YOUR LOCAL EMERGENCY NUMBER (LIKE 911) IMMEDIATELY. Signs of a heart attack include chest pain, shortness of breath, and pain in arms or neck.",
+        "⚠️ For severe chest pain, drooping face, or sudden weakness (Stroke signs), call an ambulance right away. Do NOT wait.",
+        "⚠️ If someone is unresponsive and not breathing, call emergency services and begin CPR immediately (push hard and fast in the center of the chest)."
+      ],
+      "responses_ar": [
+        "⚠️ إذا كانت هذه حالة طارئة، اتصل برقم الإسعاف المحلي فوراً. من علامات النوبة القلبية: ألم الصدر، ضيق التنفس، وألم في الذراعين أو الرقبة.",
+        "⚠️ لأي ألم حاد في الصدر، ارتخاء في الوجه، أو ضعف مفاجئ (علامات جلطة)، اطلب الإسعاف فوراً. لا تنتظر.",
+        "⚠️ إذا كان شخص فاقداً للوعي ولا يتنفس، اتصل بالطوارئ وابدأ الإنعاش القلبي الرئوي (CPR) بالضغط القوي والسريع وسط الصدر."
+      ]
+    },
+    {
+      "tag": "stress_relief",
+      "patterns_en": [
+        "i am stressed",
+        "stress relief",
+        "anxiety",
+        "feel anxious",
+        "calm down",
+        "meditation",
+        "stress",
+        "panic",
+        "worried",
+        "nervous",
+        "breathing exercise"
+      ],
+      "patterns_ar": [
+        "أنا متوتر",
+        "تخفيف التوتر",
+        "قلق",
+        "أشعر بالقلق",
+        "أهدأ",
+        "تأمل",
+        "توتر",
+        "ذعر",
+        "خائف",
+        "عصبي",
+        "تمارين التنفس"
+      ],
+      "responses_en": [
+        "To relieve stress, try deep breathing exercises: inhale for 4 seconds, hold for 4, exhale for 6. Meditating can help lower your heart rate, which is currently at {bpm} BPM.",
+        "Take a step back. Close your eyes and focus on your breath. Stress can temporarily raise your blood pressure and heart rate.",
+        "It's completely okay to feel anxious. Try doing a quick 5-minute mindfulness exercise, or listen to some calming music."
+      ],
+      "responses_ar": [
+        "لتخفيف التوتر، جرب تمارين التنفس العميق: شهيق لـ4 ثوانٍ، كتم لـ4، زفير لـ6. التأمل قد يخفض معدل ضربات قلبك، وهو الآن {bpm}.",
+        "خذ خطوة للوراء. أغمض عينيك وركز على تنفسك. التوتر يمكن أن يرفع ضغط الدم والنبض مؤقتاً.",
+        "من الطبيعي أن تشعر بالقلق. جرب ممارسة تمرين يقظة ذهنية لمدة 5 دقائق، أو استمع لموسيقى هادئة."
+      ]
+    },
+    {
+      "tag": "diabetes_info",
+      "patterns_en": [
+        "diabetes",
+        "sugar",
+        "blood sugar",
+        "glucose",
+        "insulin",
+        "diabetic",
+        "low sugar",
+        "high sugar",
+        "type 2 diabetes"
+      ],
+      "patterns_ar": [
+        "سكري",
+        "سكر",
+        "سكر الدم",
+        "جلوكوز",
+        "أنسولين",
+        "مريض سكري",
+        "سكر منخفض",
+        "سكر مرتفع",
+        "النوع الثاني من السكري"
+      ],
+      "responses_en": [
+        "Managing diabetes involves monitoring your blood sugar, eating a balanced diet, and staying active. High blood sugar over time can impact your cardiovascular health.",
+        "If you feel dizzy or shaky, your blood sugar might be low. If you're managing diabetes, please consult your endocrinologist.",
+        "A diet low in refined carbohydrates and rich in fiber can help stabilize blood glucose levels."
+      ],
+      "responses_ar": [
+        "إدارة السكري تتضمن مراقبة سكر الدم، تناول طعام متوازن، والنشاط البدني. ارتفاع السكر لفترات طويلة يؤثر على صحة قلبك.",
+        "إذا شعرت بالدوار أو الرجفة، قد يكون سكر دمك منخفضاً. إذا كنت مريضاً بالسكري، يرجى استشارة طبيبك.",
+        "تناول نظام غذائي قليل الكربوهيدرات المكررة وغني بالألياف يساعد في استقرار مستوى الجلوكوز."
+      ]
+    },
+    {
+      "tag": "high_blood_pressure_info",
+      "patterns_en": [
+        "hypertension",
+        "high bp",
+        "how to lower blood pressure",
+        "reduce pressure",
+        "salt",
+        "sodium"
+      ],
+      "patterns_ar": [
+        "ارتفاع الضغط",
+        "ضغط مرتفع",
+        "كيف أخفض ضغط الدم",
+        "تقليل الضغط",
+        "ملح",
+        "صوديوم"
+      ],
+      "responses_en": [
+        "To help lower high blood pressure, reduce your sodium (salt) intake, exercise regularly, limit alcohol, and manage stress.",
+        "Hypertension is often called the 'silent killer'. Keep an eye on your readings and consider adopting the DASH diet.",
+        "Lowering your blood pressure reduces the risk of heart disease and stroke. Try cutting back on salty, processed foods."
+      ],
+      "responses_ar": [
+        "للمساعدة في خفض ضغط الدم، قلل من تناول الصوديوم (الملح)، تمرن بانتظام، تخلص من التوتر، وحافظ على وزن صحي.",
+        "ارتفاع ضغط الدم يُسمى 'القاتل الصامت'. راقب قراءاتك وفكر في اتباع حمية DASH.",
+        "خفض ضغط الدم يقلل من خطر الإصابة بأمراض القلب والسكتات. حاول تقليل الأطعمة المصنعة والمالحة."
+      ]
+    },
+    {
+      "tag": "covid_flu_info",
+      "patterns_en": [
+        "covid",
+        "flu",
+        "cold",
+        "cough",
+        "sneezing",
+        "sick",
+        "virus",
+        "infection",
+        "sore throat",
+        "corona"
+      ],
+      "patterns_ar": [
+        "كوفيد",
+        "انفلونزا",
+        "برد",
+        "سعال",
+        "عطس",
+        "مريض",
+        "فيروس",
+        "عدوى",
+        "ألم في الحلق",
+        "كورونا",
+        "زكام"
+      ],
+      "responses_en": [
+        "If you have flu or COVID-19 symptoms like a fever, cough, or fatigue, get plenty of rest, stay hydrated, and isolate if necessary.",
+        "For a common cold or mild flu, rest and hydration are key. Monitor your SpO2; if it drops significantly, seek medical care.",
+        "A drop in SpO2 (yours is {spo2}%) paired with a cough or shortness of breath could be a sign of a respiratory infection."
+      ],
+      "responses_ar": [
+        "إذا كانت لديك أعراض إنفلونزا أو كوفيد-19 مثل الحمى أو السعال، خذ قسطاً كافياً من الراحة، اشرب السوائل، واعزل نفسك إذا لزم الأمر.",
+        "في حالات البرد العادي، الراحة والسوائل هي الأهم. راقب نسبة الأكسجين؛ إذا انخفضت بشكل كبير، اطلب الرعاية.",
+        "انخفاض الأكسجين (نسبتك هي {spo2}%) مصحوباً بسعال أو ضيق تنفس قد يكون علامة على عدوى تنفسية."
+      ]
+    },
+    {
+      "tag": "hydration",
+      "patterns_en": [
+        "water",
+        "hydrate",
+        "drink",
+        "thirsty",
+        "how much water",
+        "hydration",
+        "fluids",
+        "dehydrated"
+      ],
+      "patterns_ar": [
+        "ماء",
+        "ترطيب",
+        "أشرب",
+        "عطشان",
+        "كم كمية الماء",
+        "سوائل",
+        "جفاف"
+      ],
+      "responses_en": [
+        "Staying hydrated is crucial! Aim for about 8 glasses (2 liters) of water a day, more if you are active or it's hot.",
+        "Dehydration can cause your heart to work harder, increasing your BPM. Try to drink water regularly throughout the day.",
+        "Water helps regulate your body temperature and keeps your joints lubricated. Keep a bottle handy!"
+      ],
+      "responses_ar": [
+        "شرب الماء ضروري جداً! استهدف حوالي 8 أكواب (لترين) يومياً، وأكثر إذا كنت نشيطاً أو الجو حار.",
+        "الجفاف قد يجعل قلبك يعمل بجهد أكبر، مما يرفع النبض. حاول شرب الماء بانتظام طوال اليوم.",
+        "الماء يساعد في تنظيم حرارة جسمك. احتفظ بزجاجة ماء قريبة منك!"
+      ]
+    },
+    {
+      "tag": "smoking_alcohol",
+      "patterns_en": [
+        "smoking",
+        "quit smoking",
+        "alcohol",
+        "drinking",
+        "cigarettes",
+        "vape",
+        "tobacco"
+      ],
+      "patterns_ar": [
+        "تدخين",
+        "إقلاع عن التدخين",
+        "كحول",
+        "شرب",
+        "سجائر",
+        "فيب",
+        "تبغ",
+        "شيشة"
+      ],
+      "responses_en": [
+        "Quitting smoking is one of the best things you can do for your heart. It improves your circulation and SpO2 levels almost immediately.",
+        "Limiting alcohol intake can help lower blood pressure and reduce the risk of heart failure.",
+        "Smoking damages your blood vessels and lowers the oxygen in your blood. Consider seeking help to quit!"
+      ],
+      "responses_ar": [
+        "الإقلاع عن التدخين هو من أفضل الأشياء لقلبك. إنه يحسن الدورة الدموية ومستويات الأكسجين بشكل شبه فوري.",
+        "تقليل استهلاك الكحول يساعد في خفض ضغط الدم وتقليل خطر فشل القلب.",
+        "التدخين يتلف الأوعية الدموية ويقلل الأكسجين. فكر في طلب المساعدة للإقلاع!"
+      ]
+    },
+    {
+      "tag": "follow_up",
+      "patterns_en": [
+        "is that high",
+        "is that normal",
+        "is that bad",
+        "is that okay",
+        "explain more",
+        "what does that mean",
+        "why",
+        "tell me more",
+        "how come",
+        "so what"
+      ],
+      "patterns_ar": [
+        "هل هذا مرتفع",
+        "هل هذا طبيعي",
+        "هل هذا سيء",
+        "هل يعقل هذا",
+        "اشرح لي أكثر",
+        "ماذا يعني",
+        "لماذا",
+        "أخبرني المزيد",
+        "كيف ذلك",
+        "وماذا بعد"
+      ],
+      "responses_en": [],
+      "responses_ar": []
+    }
+  ]
+}
