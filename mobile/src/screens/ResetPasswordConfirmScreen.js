@@ -11,7 +11,9 @@ const ResetPasswordConfirmScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
 
   const handleResetPassword = async () => {
-    if (!otp || !newPassword) {
+    const trimmedEmail = email ? email.trim() : '';
+    const trimmedOtp = otp ? otp.trim() : '';
+    if (!trimmedOtp || !newPassword) {
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
@@ -19,8 +21,8 @@ const ResetPasswordConfirmScreen = ({ navigation, route }) => {
     setLoading(true);
     try {
       const response = await api.post('auth/password-reset-confirm/', { 
-        email, 
-        otp, 
+        email: trimmedEmail, 
+        otp: trimmedOtp, 
         new_password: newPassword 
       });
       Alert.alert('Success', 'Password reset successfully! You can now log in.');

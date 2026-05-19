@@ -16,6 +16,16 @@ const SettingsScreen = ({ navigation }) => {
   const [liveSyncEnabled, setLiveSyncEnabled] = useState(true);
   const [emergencyEnabled, setEmergencyEnabled] = useState(false);
 
+  // ESP32 Hardware IP Address state
+  const [esp32Ip, setEsp32Ip] = useState('10.21.2.151');
+  const [ipModalVisible, setIpModalVisible] = useState(false);
+  const [editedIp, setEditedIp] = useState('10.21.2.151');
+
+  // Django Server IP Address state
+  const [djangoIp, setDjangoIp] = useState('10.21.2.151');
+  const [djangoModalVisible, setDjangoModalVisible] = useState(false);
+  const [editedDjangoIp, setEditedDjangoIp] = useState('10.21.2.151');
+
   // New states for interactive sections
   const [notiModalVisible, setNotiModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
@@ -70,10 +80,24 @@ const SettingsScreen = ({ navigation }) => {
       const push = await AsyncStorage.getItem('push_enabled');
       const report = await AsyncStorage.getItem('report_enabled');
       const alerts = await AsyncStorage.getItem('heart_alerts_enabled');
+      const liveSync = await AsyncStorage.getItem('live_sync_enabled');
+      const emergency = await AsyncStorage.getItem('emergency_alerts_enabled');
+      const savedIp = await AsyncStorage.getItem('@esp32_ip');
+      const savedDjangoIp = await AsyncStorage.getItem('@django_server_ip');
       
       if (push !== null) setPushEnabled(JSON.parse(push));
       if (report !== null) setReportEnabled(JSON.parse(report));
       if (alerts !== null) setAlertsEnabled(JSON.parse(alerts));
+      if (liveSync !== null) setLiveSyncEnabled(JSON.parse(liveSync));
+      if (emergency !== null) setEmergencyEnabled(JSON.parse(emergency));
+      if (savedIp !== null) {
+        setEsp32Ip(savedIp);
+        setEditedIp(savedIp);
+      }
+      if (savedDjangoIp !== null) {
+        setDjangoIp(savedDjangoIp);
+        setEditedDjangoIp(savedDjangoIp);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -84,16 +108,65 @@ const SettingsScreen = ({ navigation }) => {
     try {
       const response = await api.patch('user/profile/', { username: editedName });
       setProfile(response.data);
+      
+      // Keep AsyncStorage current_username synchronized so avatar and context don't break!
+      const oldUsername = await AsyncStorage.getItem('current_username');
+      if (oldUsername && oldUsername !== editedName) {
+        const savedAvatar = await AsyncStorage.getItem(`@cardio_avatar_${oldUsername}`);
+        if (savedAvatar) {
+          await AsyncStorage.setItem(`@cardio_avatar_${editedName}`, savedAvatar);
+          await AsyncStorage.removeItem(`@cardio_avatar_${oldUsername}`);
+        }
+      }
+      await AsyncStorage.setItem('current_username', editedName);
+      
       setNameModalVisible(false);
       Alert.alert("Success", "Profile name updated!");
     } catch (e) {
       console.error(e);
-      Alert.alert("Error", "Could not update name.");
+      Alert.alert("Error", "Could not update name. Username might already be taken.");
     }
   };
+
+  const handleUpdateIp = async () => {
+    if (!editedIp.trim()) return;
+    try {
+      await AsyncStorage.setItem('@esp32_ip', editedIp.trim());
+      setEsp32Ip(editedIp.trim());
+      setIpModalVisible(false);
+      Alert.alert("Success", "ESP32 IP Address updated!");
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "Could not save ESP32 IP.");
+    }
+  };
+
+  const handleUpdateDjangoIp = async () => {
+    if (!editedDjangoIp.trim()) return;
+    try {
+      await AsyncStorage.setItem('@django_server_ip', editedDjangoIp.trim());
+      setDjangoIp(editedDjangoIp.trim());
+      setDjangoModalVisible(false);
+      Alert.alert("Success", "Django Server IP Address updated!");
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "Could not save Django Server IP.");
+    }
+  };
+
   const handleAlertsToggle = async (value) => {
     setAlertsEnabled(value);
     await AsyncStorage.setItem('heart_alerts_enabled', JSON.stringify(value));
+  };
+
+  const handleEmergencyToggle = async (value) => {
+    setEmergencyEnabled(value);
+    await AsyncStorage.setItem('emergency_alerts_enabled', JSON.stringify(value));
+  };
+
+  const handleLiveSyncToggle = async (value) => {
+    setLiveSyncEnabled(value);
+    await AsyncStorage.setItem('live_sync_enabled', JSON.stringify(value));
   };
 
   const handleLogout = () => {
@@ -200,9 +273,23 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.cardBlock}>
           {renderToggle('heart', 'Heart Rate Alerts', 'Notify when abnormal', '#ff4b4b', '#ffebeb', alertsEnabled, handleAlertsToggle)}
           <View style={styles.divider} />
-          {renderToggle('sync', 'Live Sync', 'Connect hardware device', '#3282f6', '#e6f0ff', liveSyncEnabled, setLiveSyncEnabled)}
+          {renderToggle('sync', 'Live Sync', 'Connect hardware device', '#3282f6', '#e6f0ff', liveSyncEnabled, handleLiveSyncToggle)}
+          {liveSyncEnabled && (
+            <>
+              <View style={styles.divider} />
+              {renderLink('wifi', 'ESP32 IP Address', esp32Ip, '#00d68f', '#e6fdf2', () => {
+                setEditedIp(esp32Ip);
+                setIpModalVisible(true);
+              })}
+            </>
+          )}
           <View style={styles.divider} />
-          {renderToggle('warning', 'Emergency Alert', 'Auto-call contacts', '#f5a623', '#fef3c7', emergencyEnabled, setEmergencyEnabled)}
+          {renderLink('server', 'Django Server IP Address', djangoIp, '#3282f6', '#e6f0ff', () => {
+            setEditedDjangoIp(djangoIp);
+            setDjangoModalVisible(true);
+          })}
+          <View style={styles.divider} />
+          {renderToggle('warning', 'Emergency Alert', 'Auto-call contacts', '#f5a623', '#fef3c7', emergencyEnabled, handleEmergencyToggle)}
         </View>
 
         <Text style={styles.sectionHeader}>{t('app_preferences')}</Text>
@@ -239,6 +326,60 @@ const SettingsScreen = ({ navigation }) => {
               />
               <TouchableOpacity style={styles.saveBtn} onPress={handleUpdateName}>
                 <Text style={styles.saveBtnText}>Save Changes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ESP32 IP Config Modal */}
+        <Modal visible={ipModalVisible} animationType="fade" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>ESP32 Server Configuration</Text>
+                <TouchableOpacity onPress={() => setIpModalVisible(false)}>
+                  <Ionicons name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+              <Text style={{ fontSize: 13, color: '#666', marginBottom: 15 }}>
+                Enter the IP address of your ESP32 Wi-Fi server (e.g. 192.168.1.100).
+              </Text>
+              <TextInput 
+                style={styles.nameInput}
+                value={editedIp}
+                onChangeText={setEditedIp}
+                placeholder="10.21.2.151"
+                autoFocus
+              />
+              <TouchableOpacity style={styles.saveBtn} onPress={handleUpdateIp}>
+                <Text style={styles.saveBtnText}>Save Configuration</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Django Server IP Config Modal */}
+        <Modal visible={djangoModalVisible} animationType="fade" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Django Server Configuration</Text>
+                <TouchableOpacity onPress={() => setDjangoModalVisible(false)}>
+                  <Ionicons name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+              <Text style={{ fontSize: 13, color: '#666', marginBottom: 15 }}>
+                Enter the IP address of your Django Backend Server (e.g. 192.168.4.2 or 10.21.2.151).
+              </Text>
+              <TextInput 
+                style={styles.nameInput}
+                value={editedDjangoIp}
+                onChangeText={setEditedDjangoIp}
+                placeholder="10.21.2.151"
+                autoFocus
+              />
+              <TouchableOpacity style={styles.saveBtn} onPress={handleUpdateDjangoIp}>
+                <Text style={styles.saveBtnText}>Save Configuration</Text>
               </TouchableOpacity>
             </View>
           </View>

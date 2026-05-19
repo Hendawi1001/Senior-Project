@@ -35,7 +35,15 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        # Exclude the current user from uniqueness check during profile updates
+        request = self.context.get('request')
+        user = request.user if request else None
+        
+        qs = User.objects.filter(email=value)
+        if user and user.pk:
+            qs = qs.exclude(pk=user.pk)
+            
+        if qs.exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
 
@@ -56,9 +64,12 @@ class HealthDataSerializer(serializers.ModelSerializer):
         read_only_fields = ('user', 'timestamp')
 
 class AlertHistorySerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+
     class Meta:
         model = AlertHistory
-        fields = '__all__'
+        fields = ('id', 'user', 'user_id', 'username', 'message', 'timestamp')
 
 class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:

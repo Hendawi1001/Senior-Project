@@ -81,6 +81,49 @@ const ChatbotScreen = ({ navigation }) => {
     try {
       const currentUsername = await AsyncStorage.getItem('current_username') || 'default_user';
       const historyKey = `@cardio_chat_history_${currentUsername}`;
+      
+      // Try to fetch from Django server first to sync with backend DB
+      try {
+        const response = await api.get('chat/');
+        const savedHistory = await AsyncStorage.getItem(historyKey);
+        const localMsgs = savedHistory ? JSON.parse(savedHistory) : [];
+
+        if (response.data && response.data.length > 0) {
+          const formatted = response.data.map((m, idx) => ({
+            id: m.id ? m.id.toString() : (Date.now() + idx).toString(),
+            sender: m.sender,
+            message: m.message,
+            timestamp: m.timestamp ? new Date(m.timestamp).getTime() : Date.now()
+          }));
+          setMessages(formatted);
+          await AsyncStorage.setItem(historyKey, JSON.stringify(formatted));
+          return;
+        } else if (localMsgs.length > 0) {
+          // CLOUD SYNC GAP: Local has chats but server has 0 chats!
+          // Upload existing local offline messages to Django in the background
+          const syncLocalToCloud = async () => {
+            try {
+              for (const msg of localMsgs) {
+                if (msg.id === '1') continue; // Skip default welcome message
+                await api.post('chat/', {
+                  is_sync: true,
+                  sender: msg.sender,
+                  message: msg.message
+                });
+              }
+              console.log("Successfully synced local chat logs to the server!");
+            } catch (syncErr) {
+              console.log("Background local-to-cloud sync failed", syncErr.message);
+            }
+          };
+          syncLocalToCloud();
+          setMessages(localMsgs);
+          return;
+        }
+      } catch (apiErr) {
+        console.log("Offline mode: falling back to local AsyncStorage for chat logs", apiErr.message);
+      }
+
       const savedHistory = await AsyncStorage.getItem(historyKey);
       if (savedHistory) {
         setMessages(JSON.parse(savedHistory));
@@ -129,6 +172,16 @@ const ChatbotScreen = ({ navigation }) => {
     saveChatHistory(updatedMessages);
 
     if (!textOverride) setInputText('');
+
+    // POST user message to Django in background to store in backend SQLite DB
+    const postUserMsg = async () => {
+      try {
+        await api.post('chat/', { message: textToSend });
+      } catch (e) {
+        console.log("Offline: user message saved locally only", e.message);
+      }
+    };
+    postUserMsg();
 
     setIsTyping(true);
     // Simulate thinking delay between 1.0 and 1.8 seconds

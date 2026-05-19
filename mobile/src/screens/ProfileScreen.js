@@ -22,6 +22,8 @@ const ProfileScreen = ({ navigation }) => {
 
   const [editAge, setEditAge] = useState('');
   const [editGender, setEditGender] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [image, setImage] = useState(null);
 
   useEffect(() => {
@@ -47,6 +49,8 @@ const ProfileScreen = ({ navigation }) => {
       setProfile(profileRes.data);
       setEditAge(profileRes.data.age?.toString() || '');
       setEditGender(profileRes.data.gender || '');
+      setEditUsername(profileRes.data.username || '');
+      setEditEmail(profileRes.data.email || '');
 
       const healthRes = await api.get('health/data/');
       if (healthRes.data.length > 0) {
@@ -61,15 +65,29 @@ const ProfileScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const genderMap = { 'Male': 'M', 'Female': 'F', 'Other': 'O' };
-      await api.patch('user/profile/', {
+      const response = await api.patch('user/profile/', {
+        username: editUsername,
+        email: editEmail,
         age: parseInt(editAge),
         gender: genderMap[editGender] || editGender
       });
+
+      // Keep AsyncStorage current_username synchronized so avatar and settings don't break!
+      const oldUsername = await AsyncStorage.getItem('current_username');
+      if (oldUsername && oldUsername !== editUsername) {
+        const savedAvatar = await AsyncStorage.getItem(`@cardio_avatar_${oldUsername}`);
+        if (savedAvatar) {
+          await AsyncStorage.setItem(`@cardio_avatar_${editUsername}`, savedAvatar);
+          await AsyncStorage.removeItem(`@cardio_avatar_${oldUsername}`);
+        }
+      }
+      await AsyncStorage.setItem('current_username', editUsername);
+
       await fetchData();
       setEditModalVisible(false);
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (e) {
-      Alert.alert('Error', 'Failed to update profile.');
+      Alert.alert('Error', 'Failed to update profile. Username or Email might already be taken.');
     } finally {
       setLoading(false);
     }
@@ -223,6 +241,25 @@ const ProfileScreen = ({ navigation }) => {
                     <Ionicons name="close" size={24} color="#333" />
                   </TouchableOpacity>
                 </View>
+
+                <Text style={styles.inputLabel}>Username</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={editUsername}
+                  onChangeText={setEditUsername}
+                  placeholder="Enter username"
+                  autoCapitalize="none"
+                />
+
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={editEmail}
+                  onChangeText={setEditEmail}
+                  placeholder="Enter email address"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
 
                 <Text style={styles.inputLabel}>Age</Text>
                 <TextInput

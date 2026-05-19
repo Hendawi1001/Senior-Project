@@ -40,21 +40,22 @@ const ForgotPasswordScreen = ({ navigation }) => {
   };
 
   const handleRequestOTP = async () => {
-    if (!email) {
+    const trimmedEmail = email ? email.trim() : '';
+    if (!trimmedEmail) {
       Alert.alert('Error', 'Please enter your email address.');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.post('auth/password-reset-request/', { email });
+      const response = await api.post('auth/password-reset-request/', { email: trimmedEmail });
 
       if (response.data.otp) {
         await showCodeNotification(response.data.otp);
       }
 
       Alert.alert('Success', 'OTP code sent! Check your notifications (or server console).');
-      navigation.navigate('ResetPasswordConfirm', { email });
+      navigation.navigate('ResetPasswordConfirm', { email: trimmedEmail });
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Something went wrong. Please try again.';
       Alert.alert('Error', errorMsg);

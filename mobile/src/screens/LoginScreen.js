@@ -1,5 +1,6 @@
-import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useContext, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Modal } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +12,42 @@ const LoginScreen = ({ navigation }) => {
   const [loadingApp, setLoadingApp] = useState(''); // 'google', 'apple'
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { login, register } = useContext(AuthContext);
+  
+  // Password visibility state
+  const [securePassword, setSecurePassword] = useState(true);
+  
+  // Django Server IP Address states
+  const [djangoModalVisible, setDjangoModalVisible] = useState(false);
+  const [djangoIp, setDjangoIp] = useState('10.21.2.151');
+  const [editedDjangoIp, setEditedDjangoIp] = useState('10.21.2.151');
+
+  useEffect(() => {
+    const loadSavedIp = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('@django_server_ip');
+        if (saved) {
+          setDjangoIp(saved);
+          setEditedDjangoIp(saved);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadSavedIp();
+  }, []);
+
+  const handleSaveDjangoIp = async () => {
+    if (!editedDjangoIp.trim()) return;
+    try {
+      await AsyncStorage.setItem('@django_server_ip', editedDjangoIp.trim());
+      setDjangoIp(editedDjangoIp.trim());
+      setDjangoModalVisible(false);
+      Alert.alert('Success', 'Django Server IP updated! You can now log in or register.');
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Failed to save server IP.');
+    }
+  };
 
   const handleSocialLogin = async (platform) => {
     setLoadingApp(platform);
@@ -55,11 +92,19 @@ const LoginScreen = ({ navigation }) => {
       setIsLoggingIn(true);
       await login(username, password);
     } catch (e) {
-      let errorMsg = e.response?.data?.detail || e.response?.data?.non_field_errors?.[0] || 'Invalid credentials or server error.';
+      let errorMsg = 'An unexpected error occurred. Please try again.';
       
-      // If the username or password doesn't exist or is wrong, show a clean standard error
-      if (errorMsg.toLowerCase().includes('no active account') || errorMsg.toLowerCase().includes('credentials')) {
-        errorMsg = 'Invalid username or password';
+      if (!e.response) {
+        // Network error / server unreachable
+        errorMsg = 'Cannot connect to the server. Please check your internet connection and try again.';
+      } else {
+        // Server responded with an error
+        const serverError = e.response?.data?.detail || e.response?.data?.non_field_errors?.[0] || '';
+        if (serverError.toLowerCase().includes('no active account') || serverError.toLowerCase().includes('credentials')) {
+          errorMsg = 'The username or password you entered is incorrect. Please try again.';
+        } else if (serverError) {
+          errorMsg = serverError;
+        }
       }
       
       Alert.alert('Login Failed', errorMsg);
@@ -78,11 +123,16 @@ const LoginScreen = ({ navigation }) => {
             colors={['#4ba1ff', '#2d7df6']}
             style={styles.headerArea}
           >
-            <View style={styles.logoContainer}>
-              <View style={styles.logoIconCircle}>
-                <Ionicons name="pulse" size={28} color="#2d7df6" />
+            <View style={styles.logoRow}>
+              <View style={styles.logoContainer}>
+                <View style={styles.logoIconCircle}>
+                  <Ionicons name="pulse" size={28} color="#2d7df6" />
+                </View>
+                <Text style={styles.logoText}>CardioGo</Text>
               </View>
-              <Text style={styles.logoText}>CardioGo</Text>
+              <TouchableOpacity style={styles.gearIconBtn} onPress={() => setDjangoModalVisible(true)}>
+                <Ionicons name="settings-outline" size={24} color="#fff" />
+              </TouchableOpacity>
             </View>
 
             <Text style={styles.headerTitle}>Welcome Back</Text>
@@ -106,18 +156,21 @@ const LoginScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
+             <View style={styles.inputGroup}>
               <Text style={styles.fieldLabel}>PASSWORD</Text>
               <View style={styles.inputBox}>
                 <Ionicons name="lock-closed-outline" size={20} color="#3282f6" />
                 <TextInput
                   style={styles.textInput}
                   placeholder="••••••••"
-                  secureTextEntry
+                  secureTextEntry={securePassword}
                   value={password}
                   onChangeText={setPassword}
                   placeholderTextColor="#adb5bd"
                 />
+                <TouchableOpacity onPress={() => setSecurePassword(!securePassword)} style={{ padding: 10 }}>
+                  <Ionicons name={securePassword ? "eye-off-outline" : "eye-outline"} size={20} color="#adb5bd" />
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -173,6 +226,33 @@ const LoginScreen = ({ navigation }) => {
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Django Server IP Config Modal */}
+      <Modal visible={djangoModalVisible} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Django Server Configuration</Text>
+              <TouchableOpacity onPress={() => setDjangoModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 13, color: '#666', marginBottom: 15 }}>
+              Enter the IP address of your Django Backend Server (e.g. 192.168.4.2 or 10.21.2.151).
+            </Text>
+            <TextInput 
+              style={styles.modalInput}
+              value={editedDjangoIp}
+              onChangeText={setEditedDjangoIp}
+              placeholder="10.21.2.151"
+              autoFocus
+            />
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveDjangoIp}>
+              <Text style={styles.saveBtnText}>Save Configuration</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -195,7 +275,75 @@ const styles = StyleSheet.create({
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30
+  },
+  logoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
+    width: '100%',
+  },
+  gearIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#212529',
+  },
+  modalInput: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    fontSize: 16,
+    color: '#212529',
+    fontWeight: '500',
+    marginBottom: 20,
+  },
+  saveBtn: {
+    backgroundColor: '#3282f6',
+    borderRadius: 16,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
   logoIconCircle: {
     width: 44,

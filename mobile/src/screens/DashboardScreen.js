@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import api, { EMERGENCY_PHONE } from '../services/api';
 import { LanguageContext } from '../context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 
 const DashboardScreen = ({ navigation }) => {
@@ -31,10 +32,34 @@ const DashboardScreen = ({ navigation }) => {
 
   const [profilePic, setProfilePic] = useState(null);
 
+  const [esp32Ip, setEsp32Ip] = useState('10.21.2.151');
+  const [liveSyncEnabled, setLiveSyncEnabled] = useState(true);
+  
+  const [liveBpm, setLiveBpm] = useState(null);
+  const [liveSpo2, setLiveSpo2] = useState(null);
+  const [liveTemp, setLiveTemp] = useState(null);
+  const [liveSys, setLiveSys] = useState(null);
+  const [liveDia, setLiveDia] = useState(null);
+  const [liveStatus, setLiveStatus] = useState('normal');
+
+  const loadHardwareSettings = async () => {
+    try {
+      const liveSync = await AsyncStorage.getItem('live_sync_enabled');
+      const savedIp = await AsyncStorage.getItem('@esp32_ip');
+      
+      if (liveSync !== null) setLiveSyncEnabled(JSON.parse(liveSync));
+      if (savedIp !== null) setEsp32Ip(savedIp);
+    } catch (e) {
+      console.error("Dashboard error loading hardware settings", e);
+    }
+  };
+
   useEffect(() => {
     loadProfilePic();
+    loadHardwareSettings();
     const unsubscribe = navigation.addListener('focus', () => {
       loadProfilePic();
+      loadHardwareSettings();
     });
     return unsubscribe;
   }, [navigation]);
@@ -54,20 +79,202 @@ const DashboardScreen = ({ navigation }) => {
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
+  // Polling loop for live vitals inside the Dashboard Screen
+  useEffect(() => {
+    let interval = null;
+    if (liveSyncEnabled && esp32Ip) {
+      const runLiveSync = async () => {
+        try {
+          const espRes = await axios.get(`http://${esp32Ip}/vitals`, { timeout: 600 });
+          if (espRes.data && espRes.data.bpm !== undefined && espRes.data.bpm > 0) {
+            const bpmVal = espRes.data.bpm;
+            const spo2Val = espRes.data.spo2 || 98;
+            const tempVal = espRes.data.temperature || 36.6;
+            const sysVal = espRes.data.sys || 120;
+            const diaVal = espRes.data.dia || 80;
+
+            setLiveBpm(bpmVal);
+            setLiveSpo2(spo2Val);
+            setLiveTemp(tempVal);
+            setLiveSys(sysVal);
+            setLiveDia(diaVal);
+
+            // Dynamically calculate status/prediction
+            let status = 'normal';
+            if (bpmVal >= 60 && bpmVal <= 75) {
+              status = 'warning';
+            } else if (bpmVal < 60) {
+              status = 'critical';
+            }
+            if (bpmVal > 100 && bpmVal <= 120) {
+              if (status === 'normal') status = 'warning';
+            } else if (bpmVal > 120) {
+              status = 'critical';
+            }
+            if (spo2Val < 95 && spo2Val >= 90) {
+              if (status === 'normal') status = 'warning';
+            } else if (spo2Val < 90) {
+              status = 'critical';
+            }
+            setLiveStatus(status);
+
+            // Real-time emergency auto-call alert logic
+            const emergencyEnabledStr = await AsyncStorage.getItem('emergency_alerts_enabled');
+            const isEmergencyEnabled = emergencyEnabledStr ? JSON.parse(emergencyEnabledStr) : false;
+            
+            if (status === 'critical') {
+              const pattern = [500, 500, 500, 500];
+              Vibration.vibrate(pattern, true); // loop vibration
+              
+              if (isEmergencyEnabled && !global.emergencyAlertActive) {
+                global.emergencyAlertActive = true;
+                Alert.alert(
+                  "🚨 CRITICAL RISK DETECTED!",
+                  `CRITICAL WARNING: Dangerously abnormal vital detected! (Heart Rate: ${bpmVal} BPM, SpO2: ${spo2Val}%). Do you want to call the Emergency Doctor hotline now?`,
+                  [
+                    { 
+                      text: "Cancel", 
+                      style: "cancel",
+                      onPress: () => {
+                        Vibration.cancel();
+                        global.emergencyAlertActive = false;
+                      } 
+                    },
+                    { 
+                      text: "CALL NOW", 
+                      style: "destructive",
+                      onPress: () => {
+                        Vibration.cancel();
+                        global.emergencyAlertActive = false;
+                        Linking.openURL(EMERGENCY_PHONE).catch(() => {
+                          Alert.alert("Error", "Direct calling is not supported on this device.");
+                        });
+                      }
+                    }
+                  ],
+                  { cancelable: false }
+                );
+              }
+            } else {
+              Vibration.cancel();
+              global.emergencyAlertActive = false;
+            }
+
+            // Automatically save predicted risks & status updates to Django / Alert History in the background!
+            const now = Date.now();
+            if (!global.lastSavedLiveTime) global.lastSavedLiveTime = 0;
+            if (!global.lastSavedLiveStatus) global.lastSavedLiveStatus = 'normal';
+
+            // Condition: status changes to warning/critical and has been at least 10 seconds since last save,
+            // OR if it's a regular 30-second interval update to keep history fresh!
+            if (
+              (status !== 'normal' && (status !== global.lastSavedLiveStatus || now - global.lastSavedLiveTime > 10000)) ||
+              (now - global.lastSavedLiveTime > 30000)
+            ) {
+              global.lastSavedLiveTime = now;
+              global.lastSavedLiveStatus = status;
+
+              const saveLiveRecord = async () => {
+                const record = {
+                  heart_rate: bpmVal,
+                  blood_pressure_sys: sysVal,
+                  blood_pressure_dia: diaVal,
+                  sp02: spo2Val,
+                  temperature: tempVal,
+                  status: status
+                };
+                try {
+                  await api.post('health/data/', record);
+                  fetchHealthData();
+                } catch (saveErr) {
+                  console.log("Offline mode: saving live vital record locally", saveErr.message);
+                  const offlineRecord = {
+                    id: 'local_' + Date.now(),
+                    ...record,
+                    timestamp: new Date().toISOString()
+                  };
+                  try {
+                    const localDataStr = await AsyncStorage.getItem('@local_health_data');
+                    const localData = localDataStr ? JSON.parse(localDataStr) : [];
+                    localData.unshift(offlineRecord);
+                    await AsyncStorage.setItem('@local_health_data', JSON.stringify(localData));
+                    fetchHealthData();
+                  } catch (storageErr) {
+                    console.error("Local storage live save failed", storageErr);
+                  }
+                }
+              };
+              saveLiveRecord();
+            }
+          }
+        } catch (err) {
+          // Fallback to static DB values silently if connected but no device readings
+        }
+      };
+
+      interval = setInterval(runLiveSync, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+      Vibration.cancel();
+      global.emergencyAlertActive = false;
+    };
+  }, [liveSyncEnabled, esp32Ip]);
+
   useEffect(() => {
     fetchHealthData();
   }, []);
 
   const fetchHealthData = async () => {
+    let dbData = [];
+    let serverConnected = false;
     try {
-      const response = await api.get('health/data/');
-      setAllHistory(response.data);
-      if (response.data.length > 0) {
-        setHealthData(response.data[0]);
-        calculateAnalytics(response.data);
-      }
+      const response = await api.get('health/data/', { timeout: 3000 });
+      dbData = response.data;
+      serverConnected = true;
     } catch (e) {
-      console.error(e);
+      console.log("Offline mode: failed to fetch server health data", e.message);
+    }
+
+    try {
+      const localDataStr = await AsyncStorage.getItem('@local_health_data');
+      let localData = localDataStr ? JSON.parse(localDataStr) : [];
+      
+      if (serverConnected && localData.length > 0) {
+        console.log(`Auto-syncing ${localData.length} offline records to server...`);
+        // Push offline records to server in background
+        for (const rec of localData) {
+          try {
+            await api.post('health/data/', {
+              heart_rate: rec.heart_rate,
+              blood_pressure_sys: rec.blood_pressure_sys,
+              blood_pressure_dia: rec.blood_pressure_dia,
+              sp02: rec.sp02,
+              temperature: rec.temperature,
+              status: rec.status
+            });
+          } catch (syncErr) {
+            console.error("Failed to sync offline record", syncErr);
+          }
+        }
+        // Clear local cache once synced successfully!
+        await AsyncStorage.removeItem('@local_health_data');
+        localData = [];
+        // Re-fetch to get complete synchronized database records
+        const syncResponse = await api.get('health/data/');
+        dbData = syncResponse.data;
+      }
+
+      // Combine both arrays and sort by timestamp descending!
+      const combined = [...localData, ...dbData].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      setAllHistory(combined);
+      if (combined.length > 0) {
+        setHealthData(combined[0]);
+        calculateAnalytics(combined);
+      }
+    } catch (err) {
+      console.error("Failed to load local offline sync cache", err);
     }
   };
 
@@ -97,6 +304,45 @@ const DashboardScreen = ({ navigation }) => {
       insight = "High resting heart rate detected. Avoid caffeine and intense exercise.";
     }
     setAiInsight(insight);
+  };
+
+  const handleImportLiveVitals = async () => {
+    try {
+      const savedIp = await AsyncStorage.getItem('@esp32_ip');
+      const liveSync = await AsyncStorage.getItem('live_sync_enabled');
+      const liveSyncEnabled = liveSync !== null ? JSON.parse(liveSync) : true;
+      
+      if (!liveSyncEnabled) {
+        Alert.alert("Sync Disabled", "Please enable 'Live Sync' in Settings to connect with the hardware.");
+        return;
+      }
+      
+      const targetIp = savedIp || '10.21.2.151';
+
+      setIsSubmitting(true);
+      const espRes = await axios.get(`http://${targetIp}/vitals`, { timeout: 3000 });
+      setIsSubmitting(false);
+
+      if (espRes.data && espRes.data.bpm !== undefined) {
+        if (espRes.data.bpm <= 0) {
+          Alert.alert("No Finger Detected", "Please place your finger on the sensor and try again.");
+          return;
+        }
+        setFormData({
+          heart_rate: String(espRes.data.bpm),
+          sp02: String(espRes.data.spo2 || 98),
+          blood_pressure_sys: String(espRes.data.sys || 120),
+          blood_pressure_dia: String(espRes.data.dia || 80),
+          temperature: String(espRes.data.temperature || 36.6)
+        });
+        Alert.alert("Success", "Live vitals successfully imported from ESP32!");
+      } else {
+        Alert.alert("Import Failed", "Received invalid data from the ESP32 server.");
+      }
+    } catch (err) {
+      setIsSubmitting(false);
+      Alert.alert("Connection Failed", "Could not reach ESP32. Please ensure your ESP32 is powered on, connected to the same Wi-Fi network, and that its IP is correct in Settings.");
+    }
   };
 
   const handleManualEntry = async () => {
@@ -158,31 +404,66 @@ const DashboardScreen = ({ navigation }) => {
           }],
           { cancelable: false }
         );
-
-        // Send push notification logic removed
       }
 
-      await api.post('health/data/', {
-        ...formData,
-        heart_rate: parseInt(formData.heart_rate),
-        blood_pressure_sys: parseInt(formData.blood_pressure_sys),
-        blood_pressure_dia: parseInt(formData.blood_pressure_dia),
-        sp02: parseInt(formData.sp02),
-        temperature: parseFloat(formData.temperature),
-        status: status
-      });
+      try {
+        await api.post('health/data/', {
+          ...formData,
+          heart_rate: parseInt(formData.heart_rate),
+          blood_pressure_sys: parseInt(formData.blood_pressure_sys),
+          blood_pressure_dia: parseInt(formData.blood_pressure_dia),
+          sp02: parseInt(formData.sp02),
+          temperature: parseFloat(formData.temperature),
+          status: status
+        });
+        Alert.alert("Success", "Health record saved to server!");
+      } catch (err) {
+        console.log("Could not reach backend to save. Saving locally on phone...", err.message);
+        // Save locally to AsyncStorage offline sync cache!
+        const offlineRecord = {
+          id: 'local_' + Date.now(),
+          heart_rate: parseInt(formData.heart_rate),
+          blood_pressure_sys: parseInt(formData.blood_pressure_sys),
+          blood_pressure_dia: parseInt(formData.blood_pressure_dia),
+          sp02: parseInt(formData.sp02),
+          temperature: parseFloat(formData.temperature),
+          status: status,
+          timestamp: new Date().toISOString()
+        };
 
-      Alert.alert("Success", "Health record saved!");
+        try {
+          const localDataStr = await AsyncStorage.getItem('@local_health_data');
+          const localData = localDataStr ? JSON.parse(localDataStr) : [];
+          localData.unshift(offlineRecord);
+          await AsyncStorage.setItem('@local_health_data', JSON.stringify(localData));
+
+          Alert.alert(
+            "Offline Sync Activated", 
+            "Server unreachable. Record has been safely stored locally on your device and will be synced when connection is restored!"
+          );
+        } catch (storageErr) {
+          console.error("Local storage error", storageErr);
+          Alert.alert("Error", "Could not save record locally.");
+        }
+      }
+    } catch (e) {
+      console.error("Manual entry processing error", e);
+      Alert.alert("Error", "Failed to process manual entry inputs.");
+    } finally {
       setEntryModalVisible(false);
       fetchHealthData();
-    } catch (e) {
-      Alert.alert("Error", "Could not save record.");
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   const riskHistory = allHistory.filter(item => item.status !== 'normal');
+
+  const isLive = liveSyncEnabled && liveBpm !== null;
+  const currentStatus = isLive ? liveStatus : (healthData ? healthData.status : 'normal');
+  const currentHr = isLive ? liveBpm : (healthData ? healthData.heart_rate : '86');
+  const currentBp = isLive ? `${liveSys}/${liveDia}` : (healthData ? `${healthData.blood_pressure_sys}/${healthData.blood_pressure_dia}` : '120/80');
+  const currentSpo2 = isLive ? liveSpo2 : (healthData ? healthData.sp02 : '98');
+  const currentTemp = isLive ? liveTemp : (healthData ? healthData.temperature : '36.6');
 
   return (
     <View style={styles.container}>
@@ -203,9 +484,17 @@ const DashboardScreen = ({ navigation }) => {
             <Text style={styles.headerSub}>{t('health_overview')}</Text>
           </View>
         </View>
-        <LinearGradient colors={['#e6f0ff', '#e6f0ff']} style={styles.dateBadge}>
-          <Text style={styles.dateText}>{dateStr}</Text>
-        </LinearGradient>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {isLive && (
+            <View style={styles.liveIndicatorBadge}>
+              <View style={styles.liveBadgeDot} />
+              <Text style={styles.liveBadgeText}>LIVE HW</Text>
+            </View>
+          )}
+          <LinearGradient colors={['#e6f0ff', '#e6f0ff']} style={styles.dateBadge}>
+            <Text style={styles.dateText}>{dateStr}</Text>
+          </LinearGradient>
+        </View>
       </View>
 
       <ScrollView
@@ -216,9 +505,9 @@ const DashboardScreen = ({ navigation }) => {
         {/* Risk Level Banner */}
         <LinearGradient
           colors={
-            (!healthData || healthData.status === 'normal')
+            currentStatus === 'normal'
               ? ['#28c76f', '#1cd343'] // Vibrant medical green
-              : healthData.status === 'warning'
+              : currentStatus === 'warning'
               ? ['#ff9f43', '#ff8411'] // Warning orange
               : ['#ea5455', '#ff3739'] // Emergency red
           }
@@ -230,17 +519,17 @@ const DashboardScreen = ({ navigation }) => {
             <View style={styles.riskIconCircle}>
               <Ionicons 
                 name={
-                  (!healthData || healthData.status === 'normal')
+                  currentStatus === 'normal'
                     ? "checkmark-circle"
-                    : healthData.status === 'warning'
+                    : currentStatus === 'warning'
                     ? "warning"
                     : "alert-circle"
                 } 
                 size={24} 
                 color={
-                  (!healthData || healthData.status === 'normal')
+                  currentStatus === 'normal'
                     ? "#28c76f"
-                    : healthData.status === 'warning'
+                    : currentStatus === 'warning'
                     ? "#ff9f43"
                     : "#ea5455"
                 } 
@@ -249,22 +538,22 @@ const DashboardScreen = ({ navigation }) => {
             <View style={styles.riskInfo}>
               <Text style={styles.riskLabel}>{t('risk_level')}</Text>
               <Text style={styles.riskTitle}>
-                {(!healthData || healthData.status === 'normal') 
+                {currentStatus === 'normal' 
                   ? t('status_normal') 
-                  : healthData.status === 'warning' 
+                  : currentStatus === 'warning' 
                   ? t('status_warning') 
                   : t('status_critical')} ✓
               </Text>
               <Text style={styles.riskDesc}>
-                {(!healthData || healthData.status === 'normal') 
+                {currentStatus === 'normal' 
                   ? 'All vitals within healthy range' 
-                  : healthData.status === 'warning' 
+                  : currentStatus === 'warning' 
                   ? 'Warning: Low or high vitals detected' 
                   : '🚨 High Risk: Emergency call recommended!'}
               </Text>
             </View>
             <View style={styles.riskValueBox}>
-              <Text style={styles.riskValueBig}>{healthData ? healthData.heart_rate : '86'}</Text>
+              <Text style={styles.riskValueBig}>{currentHr}</Text>
               <Text style={styles.riskValueSmall}>{t('bpm_now')}</Text>
             </View>
           </View>
@@ -284,7 +573,7 @@ const DashboardScreen = ({ navigation }) => {
                 <Text style={[styles.trendText, { color: '#28c46c' }]}>+2%</Text>
               </View>
             </View>
-            <Text style={styles.cardValue}>{healthData ? healthData.heart_rate : '86'} <Text style={styles.cardUnit}>{t('bpm')}</Text></Text>
+            <Text style={styles.cardValue}>{currentHr} <Text style={styles.cardUnit}>{t('bpm')}</Text></Text>
             <Text style={styles.cardLabel}>{t('heart_history')}</Text>
           </View>
 
@@ -298,7 +587,7 @@ const DashboardScreen = ({ navigation }) => {
                 <Text style={[styles.trendText, { color: '#ff4b4b' }]}>-1%</Text>
               </View>
             </View>
-            <Text style={styles.cardValue}>{healthData ? `${healthData.blood_pressure_sys}/${healthData.blood_pressure_dia}` : '120/80'}</Text>
+            <Text style={styles.cardValue}>{currentBp}</Text>
             <Text style={styles.cardLabel}>Blood Pressure</Text>
           </View>
         </View>
@@ -314,7 +603,7 @@ const DashboardScreen = ({ navigation }) => {
                 <Text style={[styles.trendText, { color: '#28c46c' }]}>+5%</Text>
               </View>
             </View>
-            <Text style={styles.cardValue}>{healthData ? healthData.sp02 : '98'} <Text style={styles.cardUnit}>%</Text></Text>
+            <Text style={styles.cardValue}>{currentSpo2} <Text style={styles.cardUnit}>%</Text></Text>
             <Text style={styles.cardLabel}>SpO2</Text>
           </View>
 
@@ -328,7 +617,7 @@ const DashboardScreen = ({ navigation }) => {
                 <Text style={[styles.trendText, { color: '#28c46c' }]}>Norm</Text>
               </View>
             </View>
-            <Text style={styles.cardValue}>{healthData ? healthData.temperature : '36.6'} <Text style={styles.cardUnit}>°C</Text></Text>
+            <Text style={styles.cardValue}>{currentTemp} <Text style={styles.cardUnit}>°C</Text></Text>
             <Text style={styles.cardLabel}>Temp</Text>
           </View>
         </View>
@@ -411,23 +700,15 @@ const DashboardScreen = ({ navigation }) => {
 
         {/* Bottom Actions */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionCard} onPress={() => setEntryModalVisible(true)}>
-            <View style={[styles.iconWrap, { backgroundColor: '#fff7e6' }]}>
-              <Ionicons name="document-text" size={24} color="#ffa94d" />
-            </View>
-            <View style={styles.actionTextWrap}>
-              <Text style={styles.actionTitle}>Fill Records</Text>
-              <Text style={styles.actionSub}>Update info</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard} onPress={() => setHistoryModalVisible(true)}>
-            <View style={[styles.iconWrap, { backgroundColor: '#ebfbee' }]}>
+          <TouchableOpacity style={[styles.actionCard, { flex: 1 }]} onPress={() => setHistoryModalVisible(true)}>
+            <View style={[styles.iconWrap, { backgroundColor: '#ebfbee', width: 44, height: 44, borderRadius: 12 }]}>
               <Ionicons name="time" size={24} color="#40c057" />
             </View>
             <View style={styles.actionTextWrap}>
-              <Text style={styles.actionTitle}>History</Text>
-              <Text style={styles.actionSub}>All data</Text>
+              <Text style={styles.actionTitle}>Inspect Alert & Risk History</Text>
+              <Text style={styles.actionSub}>View all predicted heart risks, device warnings, and critical alarms</Text>
             </View>
+            <Ionicons name="chevron-forward" size={18} color="#adb5bd" style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
         </View>
 
@@ -464,77 +745,7 @@ const DashboardScreen = ({ navigation }) => {
           </View>
         </Modal>
 
-        {/* Data Entry Modal */}
-        <Modal visible={entryModalVisible} animationType="slide" transparent={true}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.entryBox}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>New Health Record</Text>
-                <TouchableOpacity onPress={() => setEntryModalVisible(false)}>
-                  <Ionicons name="close" size={24} color="#333" />
-                </TouchableOpacity>
-              </View>
 
-              <ScrollView>
-                <View style={styles.formItem}>
-                  <Text style={styles.inputLabel}>Heart Rate (bpm)</Text>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={formData.heart_rate}
-                    onChangeText={t => setFormData({ ...formData, heart_rate: t })}
-                  />
-                </View>
-                <View style={styles.formRow}>
-                  <View style={[styles.formItem, { width: '48%' }]}>
-                    <Text style={styles.inputLabel}>BP Systolic</Text>
-                    <TextInput
-                      style={styles.input}
-                      keyboardType="numeric"
-                      value={formData.blood_pressure_sys}
-                      onChangeText={t => setFormData({ ...formData, blood_pressure_sys: t })}
-                    />
-                  </View>
-                  <View style={[styles.formItem, { width: '48%' }]}>
-                    <Text style={styles.inputLabel}>BP Diastolic</Text>
-                    <TextInput
-                      style={styles.input}
-                      keyboardType="numeric"
-                      value={formData.blood_pressure_dia}
-                      onChangeText={t => setFormData({ ...formData, blood_pressure_dia: t })}
-                    />
-                  </View>
-                </View>
-                <View style={styles.formItem}>
-                  <Text style={styles.inputLabel}>SpO2 (%)</Text>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={formData.sp02}
-                    onChangeText={t => setFormData({ ...formData, sp02: t })}
-                  />
-                </View>
-                <View style={styles.formItem}>
-                  <Text style={styles.inputLabel}>Temperature (°C)</Text>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={formData.temperature}
-                    onChangeText={t => setFormData({ ...formData, temperature: t })}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.saveBtn}
-                  onPress={handleManualEntry}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Records</Text>}
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
 
       </ScrollView>
     </View>
@@ -915,6 +1126,25 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
     fontSize: 16
   },
+  importLiveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00d68f',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 20,
+    shadowColor: '#00d68f',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 3
+  },
+  importLiveBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold'
+  },
   saveBtn: {
     backgroundColor: '#3282f6',
     paddingVertical: 18,
@@ -1015,6 +1245,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#e6f0ff',
+  },
+  liveIndicatorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e5f8ed',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#28c46c',
+  },
+  liveBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#28c46c',
+    marginRight: 5,
+  },
+  liveBadgeText: {
+    color: '#28c46c',
+    fontSize: 10,
+    fontWeight: 'bold',
   }
 });
 

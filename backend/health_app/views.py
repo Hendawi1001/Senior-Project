@@ -77,6 +77,22 @@ class ChatMessageListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         return ChatMessage.objects.filter(user=self.request.user).order_by('timestamp')
 
+    def post(self, request, *args, **kwargs):
+        is_sync = request.data.get('is_sync', False)
+        if is_sync:
+            sender = request.data.get('sender', 'user')
+            message = request.data.get('message', '')
+            
+            msg = ChatMessage.objects.create(
+                user=request.user,
+                sender=sender,
+                message=message
+            )
+            serializer = ChatMessageSerializer(msg)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        return super().post(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         user_message = serializer.save(user=self.request.user, sender='user')
         
@@ -149,18 +165,19 @@ class PasswordResetRequestView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
-        email = request.data.get('email')
+        email = request.data.get('email', '')
         if not email:
             return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
         
-        user = User.objects.filter(email=email).first()
+        email = str(email).strip()
+        user = User.objects.filter(email__iexact=email).first()
         if not user:
              return Response({"error": "No account found with this email."}, status=status.HTTP_404_NOT_FOUND)
 
         otp = str(random.randint(100000, 999999))
-        PasswordResetOTP.objects.create(email=email, otp=otp)
+        PasswordResetOTP.objects.create(email=user.email, otp=otp)
         
-        print(f"\n\n--- [RESET PASSWORD] ---\nEmail: {email}\nOTP Code: {otp}\n------------------------\n\n")
+        print(f"\n\n--- [RESET PASSWORD] ---\nEmail: {user.email}\nOTP Code: {otp}\n------------------------\n\n")
         
         return Response({
             "message": "OTP sent to your email!",
@@ -171,21 +188,25 @@ class PasswordResetConfirmView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
-        email = request.data.get('email')
-        otp = request.data.get('otp')
-        new_password = request.data.get('new_password')
+        email = request.data.get('email', '')
+        otp = request.data.get('otp', '')
+        new_password = request.data.get('new_password', '')
         
         if not all([email, otp, new_password]):
             return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
         
-        reset_obj = PasswordResetOTP.objects.filter(email=email, otp=otp, is_used=False).order_by('-created_at').first()
+        email = str(email).strip()
+        otp = str(otp).strip()
+        
+        reset_obj = PasswordResetOTP.objects.filter(email__iexact=email, otp=otp, is_used=False).order_by('-created_at').first()
         
         if not reset_obj:
             return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
             
         if reset_obj.created_at < timezone.now() - timedelta(minutes=10):
             return Response({"error": "OTP expired."}, status=status.HTTP_400_BAD_REQUEST)
-        users = User.objects.filter(email=email)
+            
+        users = User.objects.filter(email__iexact=email)
         for user in users:
             user.set_password(new_password)
             user.save()
@@ -243,19 +264,36 @@ class AdminAlertsView(generics.ListAPIView):
     serializer_class = AlertHistorySerializer
     queryset = AlertHistory.objects.all().order_by('-timestamp')
 
-class AdminPatientHealthView(generics.ListAPIView):
+class AdminPatientHealthView(APIView):
     permission_classes = (IsAdminUser,)
-    serializer_class = HealthDataSerializer
-    def get_queryset(self):
-        user_id = self.kwargs.get('user_id')
-        return HealthData.objects.filter(user_id=user_id).order_by('-timestamp')
 
-class AdminPatientChatView(generics.ListAPIView):
+    def get(self, request, user_id):
+        try:
+            patient_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "Patient not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        history = HealthData.objects.filter(user=patient_user).order_by('-timestamp')
+        serializer = HealthDataSerializer(history, many=True)
+        return Response({
+            "patient": patient_user.username,
+            "history": serializer.data
+        })
+
+class AdminPatientChatView(APIView):
     permission_classes = (IsAdminUser,)
-    serializer_class = ChatMessageSerializer
-    def get_queryset(self):
-        user_id = self.kwargs.get('user_id')
-        return ChatMessage.objects.filter(user_id=user_id).order_by('timestamp')
+
+    def get(self, request, user_id):
+        try:
+            patient_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "Patient not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        messages = ChatMessage.objects.filter(user=patient_user).order_by('timestamp')
+        serializer = ChatMessageSerializer(messages, many=True)
+        return Response({
+            "messages": serializer.data
+        })
 
 
 # ── Hardware Sensor Integration (ESP32 / Arduino) ───────────────────────────────
