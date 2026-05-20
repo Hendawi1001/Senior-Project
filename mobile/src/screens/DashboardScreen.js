@@ -99,22 +99,33 @@ const DashboardScreen = ({ navigation }) => {
             setLiveSys(sysVal);
             setLiveDia(diaVal);
 
-            // Dynamically calculate status/prediction
             let status = 'normal';
-            if (bpmVal >= 60 && bpmVal <= 75) {
-              status = 'warning';
-            } else if (bpmVal < 60) {
-              status = 'critical';
-            }
-            if (bpmVal > 100 && bpmVal <= 120) {
-              if (status === 'normal') status = 'warning';
-            } else if (bpmVal > 120) {
-              status = 'critical';
-            }
-            if (spo2Val < 95 && spo2Val >= 90) {
-              if (status === 'normal') status = 'warning';
-            } else if (spo2Val < 90) {
-              status = 'critical';
+            try {
+              const res = await api.post('predict_cardiac_risk/', {
+                bpm: bpmVal,
+                spo2: spo2Val,
+                sys: sysVal,
+                temp: tempVal
+              });
+              if (res.data && res.data.catboost_status) {
+                status = res.data.catboost_status;
+              }
+            } catch (err) {
+              if (bpmVal >= 60 && bpmVal <= 75) {
+                status = 'warning';
+              } else if (bpmVal < 60) {
+                status = 'critical';
+              }
+              if (bpmVal > 100 && bpmVal <= 120) {
+                if (status === 'normal') status = 'warning';
+              } else if (bpmVal > 120) {
+                status = 'critical';
+              }
+              if (spo2Val < 95 && spo2Val >= 90) {
+                if (status === 'normal') status = 'warning';
+              } else if (spo2Val < 90) {
+                status = 'critical';
+              }
             }
             setLiveStatus(status);
 
@@ -206,9 +217,15 @@ const DashboardScreen = ({ navigation }) => {
               };
               saveLiveRecord();
             }
+          } else {
+            setLiveBpm(null);
+            Vibration.cancel();
+            global.emergencyAlertActive = false;
           }
         } catch (err) {
-          // Fallback to static DB values silently if connected but no device readings
+          setLiveBpm(null);
+          Vibration.cancel();
+          global.emergencyAlertActive = false;
         }
       };
 
@@ -350,28 +367,38 @@ const DashboardScreen = ({ navigation }) => {
     try {
       const hr = parseInt(formData.heart_rate);
       const spo2 = parseInt(formData.sp02);
+      const sys = parseInt(formData.blood_pressure_sys);
+      const temp = parseFloat(formData.temperature);
       let status = 'normal';
       
-      // Heart rate threshold mapping requested by the user:
-      // 60 to 75 is warning, below 60 is critical risk alarm
-      if (hr >= 60 && hr <= 75) {
-        status = 'warning';
-      } else if (hr < 60) {
-        status = 'critical';
-      }
+      try {
+        const res = await api.post('predict_cardiac_risk/', {
+          bpm: hr,
+          spo2: spo2,
+          sys: sys,
+          temp: temp
+        });
+        if (res.data && res.data.catboost_status) {
+          status = res.data.catboost_status;
+        }
+      } catch (err) {
+        if (hr >= 60 && hr <= 75) {
+          status = 'warning';
+        } else if (hr < 60) {
+          status = 'critical';
+        }
 
-      // Keep standard high heart rate limits
-      if (hr > 100 && hr <= 120) {
-        if (status === 'normal') status = 'warning';
-      } else if (hr > 120) {
-        status = 'critical';
-      }
+        if (hr > 100 && hr <= 120) {
+          if (status === 'normal') status = 'warning';
+        } else if (hr > 120) {
+          status = 'critical';
+        }
 
-      // Keep standard oxygen saturation limits
-      if (spo2 < 95 && spo2 >= 90) {
-        if (status === 'normal') status = 'warning';
-      } else if (spo2 < 90) {
-        status = 'critical';
+        if (spo2 < 95 && spo2 >= 90) {
+          if (status === 'normal') status = 'warning';
+        } else if (spo2 < 90) {
+          status = 'critical';
+        }
       }
 
       if (status !== 'normal') {

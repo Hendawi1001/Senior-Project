@@ -170,7 +170,7 @@ class NLPBot {
                 case 'ask_blood_pressure':
                     return "الضغط الصحي يكون بين 90/60 و 120/80. إذا كان خارج هذا النطاق بشكل كبير فقد يشير لارتفاع أو انخفاض.";
                 case 'ask_risk':
-                    return "يتم حساب الخطر عبر نموذج CardiacRiskNN العميق، والذي يحلل نبضك، ونسبة الأكسجين، والعمر لحساب نسبة الخطر الفعلية.";
+                    return "يتم حساب الخطر عبر نموذج GRU العميق، والذي يحلل نبضك، ونسبة الأكسجين، وحرارتك لحساب نسبة الخطر الفعلية.";
                 default:
                     return "عذرًا، يبدو أنني فقدت مسار الموضوع. هل يمكنك إعادة سؤالك؟";
             }
@@ -183,7 +183,7 @@ class NLPBot {
                 case 'ask_blood_pressure':
                     return "A healthy bracket is 90/60 to 120/80. If yours is wildly outside this bracket, it may indicate hypertension (high) or hypotension (low).";
                 case 'ask_risk':
-                    return "Your risk is calculated via the CardiacRiskNN deep learning model, which analyzes heart rate, SpO2, and age to generate a real-time risk percentage.";
+                    return "Your risk is calculated via the GRU deep learning model, which analyzes a sequence of your vitals to generate a real-time risk percentage.";
                 default:
                     return "I'm sorry, I seem to have lost track of our topic. Could you please ask your original question again?";
             }

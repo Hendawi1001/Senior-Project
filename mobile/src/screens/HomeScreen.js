@@ -89,11 +89,11 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     const runLiveSync = async () => {
-      let currentBpm = dbBpmRef.current;
-      let currentSpo2 = 98.0;
-      let currentTemp = 36.6;
-      let currentSys = 120;
-      let currentDia = 80;
+      let currentBpm = dbBpmRef.current || 80;
+      let currentSpo2 = healthData ? healthData.sp02 : 98.0;
+      let currentTemp = healthData ? healthData.temperature : 36.6;
+      let currentSys = healthData ? healthData.blood_pressure_sys : 120;
+      let currentDia = healthData ? healthData.blood_pressure_dia : 80;
       
       let hardwareSuccess = false;
 
@@ -112,28 +112,20 @@ const HomeScreen = ({ navigation }) => {
             }
           }
         } catch (err) {
-          // Silent fallback to mock data if ESP32 is offline/unreachable
         }
       }
 
-      if (!hardwareSuccess) {
-        // Fallback: Calculate the new BPM dynamically fluctuating around the actual database BPM baseline!
-        const change = Math.floor(Math.random() * 6) - 3; // +/- 3 bpm realistic variance
-        currentBpm = dbBpmRef.current + change;
-      }
-      
       setLiveBpm(currentBpm);
       setLiveSpo2(currentSpo2);
       setLiveTemp(currentTemp);
       setLiveSys(currentSys);
       setLiveDia(currentDia);
 
-      // Real-time emergency check for HomeScreen
       if (hardwareSuccess) {
         const isCritical = (currentBpm < 60) || (currentSpo2 < 90);
         if (isCritical) {
           const pattern = [500, 500, 500, 500];
-          Vibration.vibrate(pattern, true); // loop vibration
+          Vibration.vibrate(pattern, true);
 
           const emergencyEnabledStr = await AsyncStorage.getItem('emergency_alerts_enabled');
           const isEmergencyEnabled = emergencyEnabledStr ? JSON.parse(emergencyEnabledStr) : false;
@@ -171,19 +163,30 @@ const HomeScreen = ({ navigation }) => {
           Vibration.cancel();
           global.emergencyAlertActive = false;
         }
+      } else {
+        Vibration.cancel();
+        global.emergencyAlertActive = false;
       }
 
-      // Hit the actual Deep Learning PyTorch Model running on Django!
+      if (!global.vitalsSequence) {
+        global.vitalsSequence = new Array(15).fill([80.0, 98.0, 120.0, 36.6]);
+      }
+      const currentFrame = [
+        parseFloat(currentBpm),
+        parseFloat(currentSpo2),
+        parseFloat(currentSys),
+        parseFloat(currentTemp)
+      ];
+      global.vitalsSequence = [...global.vitalsSequence.slice(1), currentFrame];
+
       try {
-        const res = await api.post('predict_cardiac_risk/', {
-          bpm: currentBpm,
-          spo2: currentSpo2, 
-          age: profile ? profile.age : 30
+        const res = await api.post('predict_risk/', {
+          sequence: global.vitalsSequence
         });
         
-        if (res.data && res.data.cardiac_risk_score !== undefined) {
-          const rawRisk = res.data.cardiac_risk_score;
-          const microChange = (Math.random() * 0.03) - 0.015;
+        if (res.data && res.data.risk_score !== undefined) {
+          const rawRisk = res.data.risk_score;
+          const microChange = hardwareSuccess ? ((Math.random() * 0.03) - 0.015) : 0;
           const trueRisk = Math.max(0.01, rawRisk + microChange);
           
           setLiveRiskHistory(history => {
@@ -193,18 +196,19 @@ const HomeScreen = ({ navigation }) => {
       } catch (error) {
         console.log("Deep Learning API Error:", error.message);
         
-        // Client-side local fallback calculation so the line chart ALWAYS runs dynamically!
         const calculatedMockRisk = (currentBpm > 100 || currentBpm < 60 || currentSpo2 < 95) 
-          ? 0.72 + (Math.random() * 0.1) 
-          : 0.12 + (Math.random() * 0.08);
+          ? (0.72 + (hardwareSuccess ? (Math.random() * 0.1) : 0)) 
+          : (0.12 + (hardwareSuccess ? (Math.random() * 0.08) : 0));
           
         setLiveRiskHistory(history => {
           return [...history, calculatedMockRisk].slice(-15);
         });
       }
 
-      setCalories(prev => prev + (Math.random() > 0.5 ? 1 : 0));
-      setSteps(prev => prev + Math.floor(Math.random() * 4));
+      if (hardwareSuccess) {
+        setCalories(prev => prev + (Math.random() > 0.5 ? 1 : 0));
+        setSteps(prev => prev + Math.floor(Math.random() * 4));
+      }
     };
 
     const liveInterval = setInterval(runLiveSync, 500);
@@ -308,7 +312,7 @@ const HomeScreen = ({ navigation }) => {
               <View style={styles.stockHeader}>
                 <View>
                   <Text style={styles.stockSymbol}>CARDIAC AI</Text>
-                  <Text style={styles.stockName}>Deep Learning Risk Index</Text>
+                  <Text style={styles.stockName}>Deep Learning GRU Risk Index</Text>
                 </View>
                 <View style={[styles.riskBadge, { backgroundColor: `${riskColor}20` }]}>
                   <Text style={[styles.riskBadgeText, { color: riskColor }]}>{riskLabel}</Text>

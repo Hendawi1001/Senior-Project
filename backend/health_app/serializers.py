@@ -63,6 +63,34 @@ class HealthDataSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('user', 'timestamp')
 
+class DashboardHealthDataSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HealthData
+        fields = '__all__'
+
+    def get_status(self, obj):
+        from .catboost_service import predict_health_status
+        return predict_health_status(obj.heart_rate, obj.sp02, obj.blood_pressure_sys, obj.temperature)
+
+class DashboardUserSerializer(serializers.ModelSerializer):
+    latest = serializers.SerializerMethodField()
+    alert_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'age', 'gender', 'latest', 'alert_count')
+
+    def get_latest(self, obj):
+        latest_record = obj.health_data.order_by('-timestamp').first()
+        if latest_record:
+            return DashboardHealthDataSerializer(latest_record).data
+        return None
+
+    def get_alert_count(self, obj):
+        return obj.alerts.count()
+
 class AlertHistorySerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)

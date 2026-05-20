@@ -69,25 +69,8 @@ class PredictRiskView(APIView):
         except Exception as e:
             return Response({"error": f"Inference failed: {str(e)}"}, status=500)
 
-# --- CARDIAC DEEP LEARNING MODEL ---
-CARDIAC_MODEL_PATH = os.path.join(settings.BASE_DIR, 'cardiac_model.onnx')
-CARDIAC_STATS_PATH = os.path.join(settings.BASE_DIR, 'cardiac_norm_stats.json')
+# --- CARDIAC DEEP LEARNING MODEL DELETED ---
 
-cardiac_session = None
-cardiac_stats = None
-
-def get_cardiac_session():
-    global cardiac_session, cardiac_stats
-    if cardiac_session is None and os.path.exists(CARDIAC_MODEL_PATH):
-        import json
-        cardiac_session = ort.InferenceSession(CARDIAC_MODEL_PATH)
-        with open(CARDIAC_STATS_PATH, 'r') as f:
-            stats_raw = json.load(f)
-        cardiac_stats = {
-            'mean': np.array(stats_raw['mean'], dtype=np.float32),
-            'std':  np.array(stats_raw['std'],  dtype=np.float32),
-        }
-    return cardiac_session, cardiac_stats
 
 class PredictCardiacRiskView(APIView):
     permission_classes = [AllowAny]
@@ -95,42 +78,33 @@ class PredictCardiacRiskView(APIView):
     
     def post(self, request, *args, **kwargs):
         """
-        Expects JSON: { "bpm": 85, "spo2": 98, "age": 25 }
-        Returns the true Deep Learning Risk prediction.
+        Expects JSON: { "bpm": 85, "spo2": 98, "sys": 120, "temp": 36.6 }
+        Returns the CatBoost Risk prediction.
         """
         bpm = request.data.get('bpm')
         spo2 = request.data.get('spo2', 98.0) # Default healthy if missing
-        age = request.data.get('age', 30.0)   # Default average if missing
+        sys_bp = request.data.get('sys', 120.0) # Default if missing
+        temp = request.data.get('temp', 36.6)   # Default if missing
         
         if bpm is None:
             return Response({"error": "BPM is required."}, status=400)
             
-        session, stats = get_cardiac_session()
-        if session is None:
-            return Response({"error": "Cardiac Model not found. Train it first!"}, status=500)
-            
         try:
-            # 1. Prepare raw features
-            raw_features = np.array([[float(bpm), float(spo2), float(age)]], dtype=np.float32)
+            from .catboost_service import get_catboost_model
+            model = get_catboost_model()
             
-            # 2. Normalize features using the exact stats from training
-            normalized_features = (raw_features - stats['mean']) / stats['std']
+            if model is None:
+                return Response({"error": "CatBoost Model not found."}, status=500)
             
-            # 3. Run Deep Learning Inference
-            input_name = session.get_inputs()[0].name
-            outputs = session.run(None, {input_name: normalized_features})
+            features = [[float(bpm), float(spo2), float(sys_bp), float(temp)]]
+            proba = model.predict_proba(features)[0]
             
-            # 4. Extract percentage
-            risk_score = float(outputs[0][0][0])
+            pred_class = int(model.predict(features)[0][0])
+            status_labels = {0: 'normal', 1: 'warning', 2: 'critical'}
+            catboost_status = status_labels.get(pred_class, 'normal')
             
-            # Professional sensitivity boost: Increase resolution for small changes
-            current_bpm = float(bpm)
-            if current_bpm > 85:
-                risk_score *= 1.25
-            elif current_bpm < 65:
-                risk_score *= 1.35
+            risk_score = float(proba[1] * 0.5 + proba[2] * 1.0)
             
-            # Dynamic Jitter for "Live" feel: Adds a tiny +/- 1% variance
             import random
             risk_score += random.uniform(-0.01, 0.01)
             
@@ -138,6 +112,7 @@ class PredictCardiacRiskView(APIView):
             
             return Response({
                 "cardiac_risk_score": risk_score,
+                "catboost_status": catboost_status,
                 "status": "success"
             })
             

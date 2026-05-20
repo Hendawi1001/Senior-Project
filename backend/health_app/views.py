@@ -14,7 +14,8 @@ from PIL import Image as PILImage
 from .models import User, HealthData, AlertHistory, ChatMessage, PasswordResetOTP
 from .serializers import (
     UserSerializer, HealthDataSerializer, AlertHistorySerializer,
-    ChatMessageSerializer, CustomTokenObtainPairSerializer
+    ChatMessageSerializer, CustomTokenObtainPairSerializer,
+    DashboardUserSerializer, DashboardHealthDataSerializer
 )
 
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -234,23 +235,37 @@ class AdminStatsView(APIView):
     permission_classes = (IsAdminUser,)
     def get(self, request):
         total_users = User.objects.filter(is_staff=False).count()
-        critical = HealthData.objects.filter(status='critical').values('user').distinct().count()
+        
+        # Calculate critical users using CatBoost predictions on their latest vitals
+        critical_count = 0
+        from .catboost_service import predict_health_status
+        for patient in User.objects.filter(is_staff=False):
+            latest_record = patient.health_data.order_by('-timestamp').first()
+            if latest_record:
+                status_pred = predict_health_status(
+                    latest_record.heart_rate,
+                    latest_record.sp02,
+                    latest_record.blood_pressure_sys,
+                    latest_record.temperature
+                )
+                if status_pred == 'critical':
+                    critical_count += 1
         
         # Calculate risk percentage
         risk_pct = 0
         if total_users > 0:
-            risk_pct = round((critical / total_users) * 100)
+            risk_pct = round((critical_count / total_users) * 100)
 
         return Response({
             "total_users": total_users,
             "total_alerts": AlertHistory.objects.count(),
-            "critical": critical,
+            "critical": critical_count,
             "risk_pct": risk_pct
         })
 
 class AdminUsersView(generics.ListAPIView):
     permission_classes = (IsAdminUser,)
-    serializer_class = UserSerializer
+    serializer_class = DashboardUserSerializer
     queryset = User.objects.filter(is_staff=False).order_by('-date_joined')
 
 class AdminDeleteUserView(generics.DestroyAPIView):
@@ -274,7 +289,7 @@ class AdminPatientHealthView(APIView):
             return Response({"error": "Patient not found"}, status=status.HTTP_404_NOT_FOUND)
             
         history = HealthData.objects.filter(user=patient_user).order_by('-timestamp')
-        serializer = HealthDataSerializer(history, many=True)
+        serializer = DashboardHealthDataSerializer(history, many=True)
         return Response({
             "patient": patient_user.username,
             "history": serializer.data
