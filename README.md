@@ -176,8 +176,18 @@ You can deploy the complete backend and web dashboard using the containerized Do
 ---
 
 ## 📸 Screenshots / Demo
-> Place your system screenshots and demo GIFs inside the `docs/screenshots/` folder.
 
-1. **Mobile Application Dashboard:** Shows real-time GRU risk chart, live BPM, SpO2 tracker, and activity widgets.
-2. **AI Health Chatbot:** Features conversational clinical tips tailored to patient vitals.
-3. **Doctor Portal Cohort Triage:** Real-time web dashboard displaying alert notifications, active users, and patient vitals charts.
+### 1. Mobile Application Dashboard
+Shows the real-time GRU risk chart, live BPM, SpO2 tracker, and health activity widgets.
+
+![Mobile Application Dashboard](docs/screenshots/mobile_home.png)
+
+### 2. AI Health Chatbot
+Features conversational clinical recommendations tailored dynamically to the patient's immediate vitals context.
+
+![AI Health Chatbot](docs/screenshots/mobile_chat.png)
+
+### 3. Doctor Portal Cohort Triage
+A glassmorphic real-time web dashboard displaying real-time alert notifications, active user lists, and detailed patient health histories.
+
+![Doctor Portal Dashboard](docs/screenshots/doctor_dashboard.png)
