@@ -1,0 +1,51 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cardiogo_backend
+    restart: unless-stopped
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-me-in-production}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    volumes:
+      - cardiogo_db:/app/db
+      - cardiogo_media:/app/media
+    ports:
+      - "8000:8000"
+    networks:
+      - cardiogo_network
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/').read()" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: cardiogo_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - cardiogo_media:/app/media:ro
+    depends_on:
+      - backend
+    networks:
+      - cardiogo_network
+
+volumes:
+  cardiogo_db:
+    driver: local
+  cardiogo_media:
+    driver: local
+
+networks:
+  cardiogo_network:
+    driver: bridge

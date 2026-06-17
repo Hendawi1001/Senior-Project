@@ -48,3 +48,6 @@ yarn-debug.log*
 # Others
 *.swp
 *~
+
+# Docker
+.env

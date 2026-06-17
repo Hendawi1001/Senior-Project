@@ -404,3 +404,8 @@ class HardwareSensorDataView(APIView):
             "temperature": temp,
             "record_id": health_record.id
         }, status=status.HTTP_201_CREATED)
+
+class HealthCheckView(APIView):
+    permission_classes = (AllowAny,)
+    def get(self, request):
+        return Response({"status": "healthy"}, status=status.HTTP_200_OK)
