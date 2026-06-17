@@ -1,4 +1,4 @@
-# 🐳 CardioGo Docker Deployment Guide
+#  CardioGo Docker Deployment Guide
 
 ## Architecture Overview
 
@@ -13,7 +13,7 @@
                     └─────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
@@ -48,10 +48,10 @@ docker compose up --build -d
 
 | Service | URL |
 |---------|-----|
-| 🏥 Doctor Dashboard | http://localhost/dashboard/ |
-| ⚙️ Django Admin | http://localhost/admin/ |
-| 🔌 API Root | http://localhost/api/ |
-| 📊 Direct Backend | http://localhost:8000/ |
+|  Doctor Dashboard | http://localhost/dashboard/ |
+|  Django Admin | http://localhost/admin/ |
+|  API Root | http://localhost/api/ |
+|  Direct Backend | http://localhost:8000/ |
 
 **Default Admin Login:**
 - Username: `admin`
@@ -59,7 +59,7 @@ docker compose up --build -d
 
 ---
 
-## 📱 Mobile App Configuration
+##  Mobile App Configuration
 
 The React Native / Expo mobile app runs on **physical devices** and is NOT containerized.
 After running `docker compose up`, update the API URL in `mobile/src/services/api.js`:
@@ -80,7 +80,7 @@ npx expo start
 
 ---
 
-## 🛠️ Management Commands
+##  Management Commands
 
 ```bash
 # View live logs
@@ -92,7 +92,7 @@ docker compose logs -f backend
 # Stop all containers
 docker compose down
 
-# Stop and remove volumes (⚠️ deletes database!)
+# Stop and remove volumes
 docker compose down -v
 
 # Rebuild after code changes
@@ -108,7 +108,7 @@ docker compose exec backend bash
 
 ---
 
-## 📁 Project Structure After Docker Setup
+##  Project Structure After Docker Setup
 
 ```
 Senior-Project/
@@ -128,7 +128,7 @@ Senior-Project/
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
@@ -140,7 +140,7 @@ Senior-Project/
 
 ---
 
-## 🏭 Production Checklist
+##  Production Checklist
 
 - [ ] Set `DEBUG=False` in `.env`
 - [ ] Use a strong random `SECRET_KEY`
